@@ -45,7 +45,12 @@ function authView(setup,notice){
 async function appView(){
   document.body.classList.remove('authing');
   unwatch();P.requestPersist();
-  const toast=h('div',{class:'toast',role:'status',hidden:true}),flash=(t,bad)=>{toast.hidden=false;toast.className='toast'+(bad?' bad':'');toast.textContent=t};
+  const toast=h('div',{class:'toast',role:'status','aria-live':'polite','aria-atomic':'true',hidden:true});
+  let toastTimer=0,toastOutTimer=0;
+  const hideToast=()=>{clearTimeout(toastTimer);toast.classList.add('is-out');toastOutTimer=setTimeout(()=>{toast.hidden=true;toast.classList.remove('is-out')},240)};
+  const flash=(t,bad)=>{clearTimeout(toastTimer);clearTimeout(toastOutTimer);toast.hidden=false;toast.className='toast'+(bad?' bad':'');toast.textContent=t;
+    toast.style.animation='none';void toast.offsetWidth;toast.style.animation='';
+    toastTimer=setTimeout(hideToast,bad?5000:3400)};
   const[st,off]=await Promise.all([P.storageInfo(),P.offlineReady()]);
   const dash=await Dash.card({h,search:q=>clientsView(ctx(),q),openClient:id=>openProfile(ctx(),id),openDebts:()=>debtsPageView(ctx()),openClients:()=>clientsView(ctx())});
   const row=(k,v)=>h('div',{},h('dt',{},k),h('dd',{},v));

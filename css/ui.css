@@ -255,13 +255,15 @@ ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;fo
 .event time{font-size:.72rem;color:var(--faint);font-variant-numeric:tabular-nums}
 
 /* ---------- Feedback ---------- */
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);z-index:70;display:flex;align-items:center;gap:10px;
-  max-width:min(92vw,520px);padding:13px 20px;border-radius:999px;background:var(--gold);color:#0a0906;
-  font-size:.88rem;font-weight:600;line-height:1.35;box-shadow:0 24px 48px -22px rgba(0,0,0,.95);
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);z-index:70;display:block;
+  width:max-content;max-width:min(92vw,520px);padding:12px clamp(16px,4vw,22px);border:0;border-radius:14px;
+  background:var(--gold);color:#0a0906;font-size:clamp(.82rem,.78rem + .15vw,.9rem);font-weight:600;line-height:1.4;
+  text-align:center;overflow-wrap:anywhere;box-shadow:none;pointer-events:none;
   transform:translate(-50%,14px);opacity:0;animation:toast-in .26s var(--ease) forwards}
-.toast::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none;opacity:.55}
 .toast.bad{background:var(--danger);color:#1a0c09}
+.toast.is-out{animation:toast-out .22s var(--ease) forwards}
 @keyframes toast-in{to{transform:translate(-50%,0);opacity:1}}
+@keyframes toast-out{to{transform:translate(-50%,10px);opacity:0}}
 
 dialog.viewer{border:0;border-radius:var(--r-xl);padding:16px;max-width:min(94vw,880px);max-height:92dvh;overflow:auto;
   background:var(--surface);color:var(--ivory);box-shadow:0 50px 90px -40px #000}
