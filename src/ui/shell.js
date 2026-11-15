@@ -9,7 +9,22 @@ const MAP=[[/^Voltar/,'back'],[/^(Novo cliente|Nova dívida|Adicionar documento)
   [/^Confirmar/,'check'],[/^Salvar janela/,'check'],[/^Relatórios/,'file']];
 export function initShell({ctx,home,clients,debts,reports,backup,lock}){
   const{h}=ctx(),nav=document.getElementById('nav'),root=document.getElementById('app');
-  const item=(k,l,i,fn,c='')=>h('button',{type:'button','data-k':k,'data-i':'1',class:c,'aria-label':l,onclick:fn},icon(i,21),h('span',{},l));
+  let navBusy=null,navTimer=0,navStarted=0;
+  const navClear=()=>{if(navBusy){navBusy.classList.remove('is-loading');navBusy.removeAttribute('aria-busy');navBusy=null}root.removeAttribute('aria-busy');clearTimeout(navTimer)};
+  const navStop=()=>{if(!navBusy)return;const wait=Math.max(0,320-(performance.now()-navStarted));if(wait){clearTimeout(navTimer);navTimer=setTimeout(navStop,wait);return}navClear()};
+  const navStart=btn=>{navClear();navBusy=btn;navStarted=performance.now();btn.classList.add('is-loading');btn.setAttribute('aria-busy','true');root.setAttribute('aria-busy','true');navTimer=setTimeout(navStop,1800)};
+  const item=(k,l,i,fn,c='')=>{const b=h('button',{type:'button','data-k':k,'data-i':'1',class:c,'aria-label':l},icon(i,21),h('span',{},l));
+    b.addEventListener('click',()=>{navStart(b);try{const r=fn();if(r&&typeof r.then==='function')r.then(navStop,navStop)}catch(e){navStop();throw e}});return b};
+  const busyButtons=new Set(),busyStarted=new WeakMap(),busyTimers=new WeakMap();
+  const busyClear=btn=>{if(!busyButtons.has(btn))return;busyButtons.delete(btn);busyStarted.delete(btn);clearTimeout(busyTimers.get(btn));busyTimers.delete(btn);btn.classList.remove('is-loading');btn.removeAttribute('aria-busy')};
+  const busyStop=btn=>{if(!busyButtons.has(btn))return;const wait=Math.max(0,340-(performance.now()-(busyStarted.get(btn)||0)));if(wait){if(!busyTimers.has(btn))busyTimers.set(btn,setTimeout(()=>{busyTimers.delete(btn);busyClear(btn)},wait));return}busyClear(btn)};
+  const busyStart=btn=>{if(!btn||busyButtons.has(btn))return;busyButtons.add(btn);busyStarted.set(btn,performance.now());btn.classList.add('is-loading');btn.setAttribute('aria-busy','true');
+    const obs=new MutationObserver(()=>{if(!btn.disabled){busyStop(btn);obs.disconnect()}});obs.observe(btn,{attributes:true,attributeFilter:['disabled']});
+    setTimeout(()=>{busyStop(btn);obs.disconnect()},4500)};
+  const asyncTarget=b=>b&&!b.closest('#nav')&&!b.classList.contains('row')&&!b.classList.contains('iconbtn');
+  document.addEventListener('click',e=>{const b=e.target.closest('button');if(!asyncTarget(b))return;setTimeout(()=>{if(b.isConnected&&b.disabled)busyStart(b)},0)});
+  document.addEventListener('submit',e=>{const b=e.target.querySelector('button[type="submit"]');if(!b)return;setTimeout(()=>{if(b.isConnected&&b.disabled)busyStart(b)},0)},true);
+  addEventListener('data-changed',()=>setTimeout(()=>{for(const b of[...busyButtons])if(b.type!=='submit')busyStop(b)},650));
   nav.replaceChildren(
     h('div',{class:'nb'},h('span',{class:'mark','aria-hidden':'true'},h('img',{src:'assets/img/hat.webp',alt:''})),
       h('span',{class:'brandtext'},h('span',{class:'word'},'SCIPIONE CRED'),h('span',{class:'sub'},'Gestão de crédito'))),
@@ -27,6 +42,7 @@ export function initShell({ctx,home,clients,debts,reports,backup,lock}){
     }
   };
   const sync=()=>{
+    navStop();
     const auth=!!root.querySelector('.auth,.brand');
     nav.hidden=auth;document.body.classList.toggle('shell',!auth);
     if(!auth){

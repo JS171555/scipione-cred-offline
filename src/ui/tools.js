@@ -38,13 +38,13 @@ export function backupView(X){
     save(new Blob([z],{type:'application/zip'}),`scipione-cred-backup-${st}${pass?'-criptografado':''}.zip`);pw.value=pw2.value='';
     ok.textContent=pass?'Backup criptografado gerado. Sem a senha do backup não é possível restaurá-lo.':'Backup gerado, sem criptografia.'}catch(x){err.textContent=x.message}finally{gen.disabled=false}}},'Gerar backup');
   const file=h('input',{id:'rf',type:'file',accept:'.zip,application/zip'}),rpw=h('input',{id:'rp',type:'password',autocomplete:'off'}),info=h('div');
-  const check=h('button',{onclick:async()=>{clear();parsed=null;info.replaceChildren();try{const f=file.files[0];if(!f)throw new Error('Selecione o arquivo de backup.');
+  const check=h('button',{onclick:async()=>{clear();parsed=null;info.replaceChildren();check.disabled=true;try{const f=file.files[0];if(!f)throw new Error('Selecione o arquivo de backup.');
     parsed=await B.readBackup(new Uint8Array(await f.arrayBuffer()),rpw.value||undefined);const c=parsed.manifest.counts,mode=h('select',{id:'rm'},h('option',{value:'merge'},'Mesclar com os dados atuais'),h('option',{value:'replace'},'Substituir tudo'));
     const go=h('button',{class:'primary',onclick:async()=>{clear();const rep=mode.value==='replace';
       if(!confirm(rep?'ATENÇÃO: todos os clientes, dívidas, documentos e histórico atuais serão APAGADOS e substituídos pelo backup. Se necessário, gere um backup do estado atual antes. Continuar?':'Os dados do backup serão adicionados. Clientes com o mesmo CPF/CNPJ não serão duplicados. Continuar?'))return;
       go.disabled=true;try{const s=await B.restore(parsed.data,mode.value);ok.textContent=`Restauração concluída: ${s.clients} cliente(s), ${s.debts} dívida(s), ${s.documents} documento(s), ${s.history} registro(s) de histórico.`;info.replaceChildren();parsed=null}catch(x){err.textContent='Nada foi alterado. '+x.message;go.disabled=false}}},'Restaurar');
     info.replaceChildren(h('p',{},`Backup de ${new Date(parsed.manifest.createdAt).toLocaleString('pt-BR')}: ${c.clients} cliente(s), ${c.debts} dívida(s), ${c.documents} documento(s), ${c.history} registro(s) de histórico. Integridade verificada.`),fld(h,'rm','Modo de restauração',mode),h('div',{class:'actions'},go))}
-    catch(x){err.textContent=x.message}}},'Verificar arquivo');
+    catch(x){err.textContent=x.message}finally{check.disabled=false}}},'Verificar arquivo');
   show(top(h,'backup','Backup e restauração',home),
     h('section',{class:'card'},h('h2',{},'Gerar backup'),
       h('label',{class:'check'},enc,'Criptografar com senha (recomendado)'),
