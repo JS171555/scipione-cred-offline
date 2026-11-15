@@ -22,7 +22,7 @@ export async function page(U,{home,open,reopen}){
   const wd=h('input',{id:'wd',type:'number',min:1,max:365});
   const saveWin=async()=>{const n=Math.round(+wd.value);if(!(n>=1&&n<=365)){err.textContent='Informe de 1 a 365 dias.';return}err.textContent='';try{await setDueWindow(n);win=n;paint()}catch(x){err.textContent=x.message}};
   U.render(U.top('debts','Dívidas',home),
-    h('section',{class:'card'},h('h2',{},'Nova dívida'),
+    h('section',{class:'card'},h('h2',{},'Registrar dívida'),
       h('div',{class:'inline-form'},h('div',{class:'field'},h('label',{for:'nc'},'Registrar para o cliente'),nc),
         h('button',{class:'primary',onclick:()=>{const c=cs.find(x=>x.id===nc.value);c?form(U,c,null,reopen):err.textContent='Cadastre um cliente antes de registrar uma dívida.'}},'Nova dívida'))),
     h('section',{class:'card'},h('h2',{},'Filtros'),

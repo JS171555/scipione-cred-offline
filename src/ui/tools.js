@@ -49,7 +49,7 @@ export function backupView(X){
     info.replaceChildren(h('p',{},`Backup de ${new Date(parsed.manifest.createdAt).toLocaleString('pt-BR')}: ${c.clients} cliente(s), ${c.debts} dívida(s), ${c.documents} documento(s), ${c.history} registro(s) de histórico. Integridade verificada.`),fld(h,'rm','Modo de restauração',mode),h('div',{class:'actions'},go))}
     catch(x){err.textContent=x.message}finally{check.disabled=false}}},'Verificar arquivo');
   show(top(h,'backup','Backup e restauração',home),
-    h('section',{class:'card'},h('h2',{},'Gerar backup'),
+    h('section',{class:'card'},h('h2',{},'Novo backup'),
       h('label',{class:'check'},enc,'Criptografar com senha (recomendado)'),
       h('div',{class:'form-grid'},bp,bp2),
       h('p',{class:'muted'},'Esta senha é independente da senha do cofre e é necessária para restaurar. Backup sem criptografia contém tudo em formato legível.'),

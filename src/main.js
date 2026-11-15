@@ -25,7 +25,7 @@ function authView(setup,notice){
       }else await A.unlock(f.pw.value);
       form.reset();appView();
     }catch(x){err.textContent=fmt(x)}finally{btn.disabled=false}}},
-    h('h2',{},setup?'Crie a senha do cofre':'Desbloquear'),
+    h('h2',{},setup?'Crie a senha do cofre':'Acesso ao cofre'),
     notice&&h('p',{class:'info',role:'status'},notice),
     setup&&h('p',{class:'muted'},'Os dados ficam só neste aparelho, criptografados com esta senha.'),
     field('pw',setup?'Senha':'Senha do cofre',setup?'new-password':'current-password'),
@@ -68,7 +68,7 @@ async function appView(){
   show(
     h('header',{class:'top brandbar','data-page':'home'},
       h('div',{class:'head'},h('span',{class:'mark','aria-hidden':'true'},h('img',{src:'assets/img/hat.webp',alt:''})),
-        h('span',{class:'brandtext'},h('span',{class:'word'},'SCIPIONE CRED'),h('span',{class:'sub'},'Painel')))),
+        h('span',{class:'brandtext'},h('span',{class:'word'},'SCIPIONE CRED')))),
     h('section',{class:'hero'},h('p',{class:'eyebrow'},'Visão geral'),h('h1',{},'Seu crédito, em ordem'),
       h('p',{},hoje.charAt(0).toUpperCase()+hoje.slice(1))),
     ...dash,
@@ -83,10 +83,8 @@ async function appView(){
       h('div',{class:'col'},
         h('section',{class:'card'},h('h2',{},'Segurança'),
           h('div',{class:'field'},h('label',{for:'idle'},'Bloquear após inatividade de'),idle),
-          h('p',{class:'muted'},'O cofre se bloqueia sozinho após esse período sem uso.'),
           h('div',{class:'actions'},h('button',{onclick:()=>A.lock('manual')},'Bloquear agora')),
           h('h3',{class:'subhead'},'Integridade'),
-          h('p',{class:'muted'},'Grava um registro criptografado, lê de volta e compara.'),
           h('div',{class:'actions'},test)))),
     h('section',{class:'card install'},h('h2',{},'Instalação'),inst),
     toast);

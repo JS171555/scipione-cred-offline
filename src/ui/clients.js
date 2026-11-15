@@ -1,4 +1,4 @@
-import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,plural,filePicker}from './kit.js';
+import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,filePicker}from './kit.js';
 let X;const h=(...a)=>X.h(...a),urls=[];
 const clean=()=>{unwatch();urls.splice(0).forEach(u=>URL.revokeObjectURL(u));document.querySelectorAll('dialog.viewer').forEach(d=>d.close())};
 const render=(...n)=>{clean();X.show(...n)};A.onLock(clean);
@@ -60,7 +60,7 @@ async function profile(id){
     h('section',{class:'card'},
       h('div',{class:'profile-head'},av,h('div',{class:'who'},
         h('span',{class:'badge badge--type'},pj?'Pessoa jurídica':'Pessoa física'),
-        h('p',{},`${pj?'CNPJ':'CPF'} ${c.doc} · ${plural(cnt.debts,'dívida','dívidas')} · ${plural(cnt.docs,'documento','documentos')}`))),
+        h('p',{},`${pj?'CNPJ':'CPF'} ${c.doc}`))),
       h('dl',{class:'meta'},row('Telefone',c.phone),row('Celular',c.mobile),row('E-mail',c.email),...(pj?[]:[row('RG',c.rg)]),row('Endereço',c.address,true)),
       h('div',{class:'actions'},h('button',{class:'primary',onclick:()=>form(c)},'Editar perfil'),rep,
         h('button',{onclick:()=>rep.click()},c.photoId?'Substituir fotografia':'Adicionar fotografia'),
