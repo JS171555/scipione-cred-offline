@@ -1,4 +1,4 @@
-import*as S from '../services/clients.js';import*as DS from '../services/debts.js';import*as M from '../domain/money.js';import{match}from '../services/search.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{initials,plural}from './kit.js';
+import*as S from '../services/clients.js';import*as DS from '../services/debts.js';import*as M from '../domain/money.js';import{match}from '../services/search.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{plural}from './kit.js';import{clientAvatar}from './avatar.js';
 export async function clientList(U,{home,open,newClient,bulk},q0=''){
   const{h}=U,st={q:q0,sort:'az',rate:''};let cs=[],ds=[];const out=h('div'),cnt=h('p',{class:'count',role:'status'});
   const paint=()=>{
@@ -8,7 +8,7 @@ export async function clientList(U,{home,open,newClient,bulk},q0=''){
     const rows=cs.filter(c=>match(c,st.q)&&(!use||(r>0&&(byC.get(c.id)||[]).some(d=>d.rate===r)))).sort(cmp);
     cnt.textContent=use&&!(r>0)?'Taxa inválida. Use por exemplo 6 ou 12,5.':plural(rows.length,'cliente','clientes');
     out.replaceChildren(rows.length?h('ul',{class:'list list--grid'},rows.map(c=>h('li',{},
-      h('button',{class:'row',onclick:()=>open(c.id)},h('span',{class:'avatar','aria-hidden':'true'},initials(c.name)),
+      h('button',{class:'row',onclick:()=>open(c.id)},clientAvatar(h,c),
         h('span',{class:'row-body'},h('span',{class:'row-title'},c.name),h('span',{class:'row-sub'},c.doc)),icon('chevron',18)),
       use&&r>0?h('ul',{class:'sub'},(byC.get(c.id)||[]).filter(d=>d.rate===r).map(d=>h('li',{},`${d.description}: ${M.brl(d.principal)} a ${M.rate(d.rate)}`))):null))):
       h('p',{class:'empty'},icon('users',26),cs.length?'Nenhum cliente encontrado com esses filtros.':'Nenhum cliente ainda. Cadastre o primeiro em “Novo cliente”.'));

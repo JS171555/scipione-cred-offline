@@ -1,4 +1,4 @@
-import*as M from '../domain/money.js';import{stats}from '../services/dashboard.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,plural}from './kit.js';
+import*as M from '../domain/money.js';import{stats}from '../services/dashboard.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{when,plural}from './kit.js';import{clientAvatar}from './avatar.js';
 export async function card({h,search,openClient,openDebts,openClients}){
   const box=h('div'),q=h('input',{id:'gq',type:'search',autocomplete:'off','aria-label':'Buscar clientes',placeholder:'Buscar clientes'});
   const tile=(label,value,ico,sub,mods='')=>h('div',{class:'tile '+mods},
@@ -13,7 +13,7 @@ export async function card({h,search,openClient,openDebts,openClients}){
       h('p',{},bits.join(' · ')),h('button',{class:'ghost',onclick:openDebts},'Ver dívidas',icon('chevron',16))):null;
     const latest=s.latest.length?h('ul',{class:'list'},s.latest.map(c=>h('li',{},
       h('button',{class:'row',onclick:()=>openClient(c.id)},
-        h('span',{class:'avatar','aria-hidden':'true'},initials(c.name)),
+        clientAvatar(h,c),
         h('span',{class:'row-body'},h('span',{class:'row-title'},c.name),h('span',{class:'row-sub'},`Cliente desde ${when(c.createdAt)}`)),
         icon('chevron',18))))):h('p',{class:'empty'},icon('users',26),'Nenhum cliente cadastrado.');
     const recent=s.recent.length?h('ul',{class:'events'},s.recent.slice(0,4).map(e=>h('li',{class:'event'},
