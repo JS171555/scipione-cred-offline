@@ -3,6 +3,7 @@ Executar: `python3 -m http.server 8080` (ou `npx serve`) nesta pasta e abrir htt
 Teste da criptografia: `node tests/crypto.test.mjs`.
 
 Módulos: `db/idb.js` (IndexedDB versionado, gravação confirmada em oncomplete) · `security/crypto.js` (PBKDF2 600 mil + AES-GCM, DEK embrulhada) · `security/auth.js` (cadastro, login, sessão persistente na mesma aba, bloqueio, inatividade, atraso após 5 erros) · `pwa.js` · `sw.js` (cache offline) · `main.js` (telas).
+Identidade: tokens em `css/app.css` (fundo `#080808`, cards `#171717`, dourado `#B89A62`, marfim `#E8DFC9`, bronze `#34302A`); Cormorant Garamond e DM Sans em `assets/fonts`, com fallback local e cache offline.
 
 Limites: a criptografia protege dados em repouso; não protege contra aparelho comprometido, malware ou XSS com o app desbloqueado. O atraso após tentativas erradas é local e contornável: a defesa real é o custo do PBKDF2 e uma senha forte. Sem recuperação de senha. No iOS, o Safari pode apagar dados de sites não instalados após ~7 dias sem uso: instale na Tela de Início e faça backups (Etapa 5).
 

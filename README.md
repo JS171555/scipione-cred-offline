@@ -63,6 +63,12 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 - Layout responsivo para celular, tablet e desktop.
 - Navegação por teclado, foco visível, alvos de toque e respeito a `prefers-reduced-motion`.
 
+### Identidade visual
+- **Cores:** preto absoluto `#080808`, grafite `#171717`, dourado envelhecido `#B89A62`, marfim `#E8DFC9` e bronze escuro `#34302A`.
+- **Tipografia:** Cormorant Garamond no logotipo, títulos e elementos institucionais; DM Sans em menus, tabelas, formulários e informações operacionais.
+- **Fontes locais:** os arquivos ficam em `assets/fonts`, são carregados pelo próprio app e entram no cache offline do service worker.
+- **Direção:** interface escura, dourado moderado, ícones minimalistas, sem divisórias decorativas e com animações discretas.
+
 ## Interface
 
 <p align="center">
