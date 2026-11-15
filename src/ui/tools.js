@@ -1,4 +1,5 @@
 import*as R from '../export/reports.js';import*as B from '../export/backup.js';import*as M from '../domain/money.js';import{save}from '../export/lib.js';import{unwatch}from '../core/live.js';import{todayISO}from '../domain/due.js';import{icon}from './icons.js';import{filePicker}from './kit.js';
+const dBR=s=>s?s.split('-').reverse().join('/'):'—';
 const top=(h,page,t,back)=>h('header',{class:'top','data-page':page},
   h('div',{class:'head'},h('button',{type:'button',class:'iconbtn back','aria-label':'Voltar',onclick:back},icon('back',20)),h('h1',{},t)));
 const fld=(h,id,l,el,full)=>h('div',{class:'field'+(full?' field--full':'')},h('label',{for:id},l),el);
@@ -14,9 +15,9 @@ export function reportsView(X){
     d.debts.length?h('div',{},h('p',{class:'report-hint'},'Deslize a tabela para o lado para ver todas as colunas.'),h('div',{class:'tw'},h('table',{},
       h('colgroup',{},...['client','interest','principal','rate','date','notes'].map(c=>h('col',{class:'c-'+c}))),
       h('thead',{},h('tr',{},...[['Nome do cliente',''],['Juros valor no mês','n'],['Valor emprestado','n'],['%','n'],['Data',''],['Observações','']].map(([t,c])=>h('th',{class:c},t)))),
-      h('tbody',{},d.debts.map(x=>h('tr',{},h('td',{},x.client),h('td',{class:'n'},M.brl(x.interest)),h('td',{class:'n'},M.brl(x.principal)),h('td',{class:'n'},M.rate(x.rate)),h('td',{},x.date.slice(8)),h('td',{},x.notes||x.description)))),
+      h('tbody',{},d.debts.map(x=>h('tr',{},h('td',{},x.client),h('td',{class:'n'},M.brl(x.interest)),h('td',{class:'n'},M.brl(x.principal)),h('td',{class:'n'},M.rate(x.rate)),h('td',{},dBR(x.due)),h('td',{},x.notes||x.description)))),
       h('tfoot',{},h('tr',{},h('td',{},`Total (${d.debts.length})`),h('td',{class:'n'},M.brl(d.interest)),h('td',{class:'n'},M.brl(d.principal)),h('td',{colspan:3})))))):h('p',{},'Nenhuma dívida registrada neste período.'),
-    h('p',{},'Data: dia do mês em que a dívida foi registrada.')];
+    h('p',{},'Data: vencimento de cada dívida.')];
   show(top(h,'reports','Relatórios',home),
     h('section',{class:'card'},h('h2',{},'Período e formato'),
       h('div',{class:'form-grid'},fld(h,'pm','Período',pm),dv,mv,fld(h,'po','Orientação da impressão',po,true)),
