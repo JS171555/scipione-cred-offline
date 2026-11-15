@@ -75,6 +75,7 @@ button.danger{background:transparent;color:var(--danger)}
 button.danger:hover:not(:disabled){background:var(--danger-soft)}
 button.iconbtn{width:44px;height:44px;min-height:44px;min-width:44px;padding:0;border-radius:50%;background:transparent;color:var(--muted)}
 button.iconbtn:hover:not(:disabled){background:var(--surface-2);color:var(--ivory)}
+button.iconbtn[aria-current=page]{background:var(--gold-softer);color:var(--gold-strong)}
 .btn-block{width:100%}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;align-items:center}
 .actions button{min-height:44px;min-width:0;padding:0 14px;font-size:.86rem;border-radius:12px}
@@ -310,7 +311,7 @@ body.authing main>*{width:auto;max-width:none}
 .auth-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:26px 20px 42px;
   background:linear-gradient(180deg,rgba(8,8,8,.95) 0%,rgba(8,8,8,0) 28%),radial-gradient(80% 55% at 55% 5%,rgba(184,154,98,.06),transparent 70%),var(--bg)}
 .auth-panel .brand{margin:0 0 22px}
-@media(max-width:360px){.brand h1{font-size:1.6rem;letter-spacing:.11em}}
+@media(max-width:360px){.brand h1{font-size:1.6rem;letter-spacing:.11em}.brandtext .word{font-size:.74rem;letter-spacing:.12em}header.top h1{font-size:1.4rem}header.top .util{gap:0}header.top .util .iconbtn{width:42px;min-width:42px;height:42px;min-height:42px}}
 .auth-panel .card.auth{width:100%;max-width:420px}
 @media(min-width:760px){
   .auth-shell{grid-template-columns:1fr 1fr}
@@ -342,7 +343,7 @@ body.authing main>*{width:auto;max-width:none}
   -webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
   box-shadow:0 -26px 50px -34px rgba(0,0,0,.95)}
 #nav[hidden]{display:none}
-#nav .nb,#nav .sp,#nav .lock,#nav .out{display:none}
+#nav .nb,#nav .sp,#nav .lock,#nav .out,#nav .settings{display:none}
 #nav button{position:relative;flex:1 1 0;flex-direction:column;gap:4px;min-width:0;min-height:52px;padding:6px 2px;border-radius:14px;
   background:transparent;color:var(--faint);font-size:.65rem;font-weight:500;letter-spacing:.02em}
 #nav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -364,7 +365,7 @@ body.authing main>*{width:auto;max-width:none}
   #nav .nb .brandtext{display:none}
   #nav button{flex:none;min-height:64px;padding:8px 2px;font-size:.62rem;gap:5px}
   #nav .sp{display:block;flex:1}
-  #nav .lock,#nav .out{display:flex;min-height:48px}
+  #nav .lock,#nav .out,#nav .settings{display:flex;min-height:48px}
   #nav .out{margin-top:2px}
   body.shell main{margin:0 0 0 96px;max-width:none;padding:36px 34px 56px}
   body.shell main>*{max-width:760px;margin-left:auto;margin-right:auto}

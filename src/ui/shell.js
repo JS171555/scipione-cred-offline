@@ -7,7 +7,7 @@ const MAP=[[/^Voltar/,'back'],[/^(Novo cliente|Nova dívida|Adicionar documento)
   [/^(Baixar|Exportar|Gerar backup|Instalar)/,'download'],[/^(Pesquisar|Buscar)/,'search'],[/^Juros em lote/,'percent'],
   [/^Imprimir/,'print'],[/^Bloquear/,'lock'],[/^Sair/,'logout'],[/^Testar/,'shield'],[/^(Verificar|Restaurar)/,'upload'],
   [/^Confirmar/,'check'],[/^Salvar janela/,'check'],[/^Relatórios/,'file']];
-export function initShell({ctx,home,clients,debts,reports,backup,lock}){
+export function initShell({ctx,home,clients,debts,reports,backup,settings,lock}){
   const{h}=ctx(),nav=document.getElementById('nav'),root=document.getElementById('app');
   let navBusy=null,navTimer=0,navStarted=0;
   const navClear=()=>{if(navBusy){navBusy.classList.remove('is-loading');navBusy.removeAttribute('aria-busy');navBusy=null}root.removeAttribute('aria-busy');clearTimeout(navTimer)};
@@ -32,13 +32,16 @@ export function initShell({ctx,home,clients,debts,reports,backup,lock}){
     item('debts','Dívidas','wallet',()=>debts(ctx())),item('reports','Relatórios','file',()=>reports(ctx())),
     item('backup','Backup','db',()=>backup(ctx())),
     h('div',{class:'sp'}),
+    item('settings','Configurações','gear',()=>settings(ctx()),'settings'),
     item('lock','Bloquear','lock',()=>lock('manual'),'lock'),item('out','Sair','logout',()=>lock('logout'),'out'));
   const util=()=>{
     for(const hd of root.querySelectorAll('header.top')){
       if(hd.querySelector(':scope > .util'))continue;
-      hd.append(h('div',{class:'util'},
-        h('button',{type:'button',class:'iconbtn','aria-label':'Bloquear cofre',title:'Bloquear',onclick:()=>lock('manual')},icon('lock',20)),
-        h('button',{type:'button',class:'iconbtn','aria-label':'Sair da conta',title:'Sair',onclick:()=>lock('logout')},icon('logout',20))));
+      const util=h('div',{class:'util'});
+      if(hd.dataset.page!=='settings')util.append(h('button',{type:'button',class:'iconbtn util-settings','aria-label':'Configurações',title:'Configurações',onclick:()=>settings(ctx())},icon('gear',20)));
+      util.append(h('button',{type:'button',class:'iconbtn','aria-label':'Bloquear cofre',title:'Bloquear',onclick:()=>lock('manual')},icon('lock',20)),
+        h('button',{type:'button',class:'iconbtn','aria-label':'Sair da conta',title:'Sair',onclick:()=>lock('logout')},icon('logout',20)));
+      hd.append(util);
     }
   };
   const sync=()=>{

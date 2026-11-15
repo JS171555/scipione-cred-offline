@@ -1,5 +1,5 @@
 import*as M from '../domain/money.js';import*as S from '../services/debts.js';import*as C from '../services/clients.js';import{form}from './debts.js';
-import*as T from '../domain/due.js';import{getDueWindow,setDueWindow}from '../services/settings.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{plural}from './kit.js';
+import*as T from '../domain/due.js';import{getDueWindow}from '../services/settings.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{plural}from './kit.js';
 const dBR=s=>s.split('-').reverse().join('/');
 export async function page(U,{home,open,reopen}){
   const{h}=U,st={sort:'new',status:'all',rate:'',client:''};let ds=[],cs=[],win=7;
@@ -19,8 +19,6 @@ export async function page(U,{home,open,reopen}){
         h('div',{class:'actions'},h('button',{class:'ghost',onclick:()=>open(d.clientId)},'Abrir perfil'),h('button',{class:'ghost',onclick:()=>form(U,c,d,reopen)},'Editar'),
           h('button',{class:'ghost',onclick:async()=>{err.textContent='';if(!confirm(`Excluir a dívida “${d.description}” (${M.brl(d.principal)})?`))return;try{await S.deleteDebt(d)}catch(x){err.textContent=x.message}}},'Excluir')))})):h('p',{class:'empty'},icon('wallet',26),ds.length?'Nenhuma dívida com esses filtros.':'Nenhuma dívida cadastrada.'));
   };
-  const wd=h('input',{id:'wd',type:'number',min:1,max:365});
-  const saveWin=async()=>{const n=Math.round(+wd.value);if(!(n>=1&&n<=365)){err.textContent='Informe de 1 a 365 dias.';return}err.textContent='';try{await setDueWindow(n);win=n;paint()}catch(x){err.textContent=x.message}};
   U.render(U.top('debts','Dívidas',home),
     h('section',{class:'card'},h('h2',{},'Registrar dívida'),
       h('div',{class:'inline-form'},h('div',{class:'field'},h('label',{for:'nc'},'Registrar para o cliente'),nc),
@@ -29,14 +27,9 @@ export async function page(U,{home,open,reopen}){
       h('div',{class:'form-grid'},sel('so','Ordenar',[['new','Mais recentes'],['old','Mais antigas']],'sort'),sel('ss','Situação',[['all','Todas'],['overdue','Vencidas'],['soon','Prestes a vencer']],'status'),
         h('div',{class:'field'},h('label',{for:'fr'},'Taxa de juros (%)'),h('input',{id:'fr',inputmode:'decimal',placeholder:'Ex.: 12',oninput:e=>{st.rate=e.target.value;paint()}})),
         h('div',{class:'field'},h('label',{for:'fc'},'Cliente'),fc))),
-    sum,out,
-    h('section',{class:'card due-settings'},h('h2',{},'Vencimentos'),
-      h('p',{class:'muted'},'Define quantos dias antes do vencimento uma dívida passa a ser sinalizada como “prestes a vencer”.'),
-      h('div',{class:'inline-form'},h('div',{class:'field'},h('label',{for:'wd'},'Janela em dias'),wd),
-        h('button',{class:'ghost',onclick:saveWin},'Salvar janela'))),
-    err);
+    sum,out,err);
   const load=async()=>{[ds,cs,win]=await Promise.all([S.listDebts(),C.listClients(),getDueWindow()]);cs.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
-    const names=new Map(cs.map(c=>[c.id,c.name]));ds=ds.map(d=>({...d,clientName:names.get(d.clientId)||'—'}));wd.value=win;
+    const names=new Map(cs.map(c=>[c.id,c.name]));ds=ds.map(d=>({...d,clientName:names.get(d.clientId)||'—'}));
     fc.replaceChildren(h('option',{value:''},'Todos os clientes'),...cs.map(c=>h('option',{value:c.id,selected:c.id===st.client},c.name)));nc.replaceChildren(...cs.map(c=>h('option',{value:c.id},c.name)));paint()};
   await load();watch(load);
 }
