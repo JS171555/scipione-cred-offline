@@ -2,7 +2,7 @@ import*as M from '../domain/money.js';import*as S from '../services/debts.js';im
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const dBR=s=>s?s.split('-').reverse().join('/'):'—';
 export async function section(U,c,reload){
-  const{h}=U,ds=await S.listDebts(c.id),sum=k=>ds.reduce((t,d)=>t+d[k],0);
+  const{h}=U,ds=await S.listDebts(c.id);
   return h('section',{class:'card'},
     h('div',{class:'section-head'},h('h2',{},'Dívidas'),h('button',{class:'primary',onclick:()=>form(U,c,null,reload)},'Nova dívida')),
     ds.length?h('ul',{class:'list'},ds.map(d=>h('li',{class:'doc'},
@@ -10,8 +10,7 @@ export async function section(U,c,reload){
         h('div',{class:'doc-line'},h('span',{class:'nowrap'},M.brl(d.principal)),` a ${M.rate(d.rate)} ao mês · juros de `,h('span',{class:'nowrap'},M.brl(d.interest))),
         h('div',{class:'doc-meta'},`Registro ${dBR(d.date)} · vencimento ${dBR(d.due)}${d.notes?` · ${d.notes}`:''}`)),
       h('div',{class:'actions'},h('button',{class:'ghost',onclick:()=>form(U,c,d,reload)},'Editar'),
-        h('button',{class:'ghost',onclick:async()=>{if(confirm(`Excluir a dívida “${d.description}” (${M.brl(d.principal)})?`)){await S.deleteDebt(d);reload()}}},'Excluir'))))):h('p',{class:'empty'},icon('wallet',26),'Nenhuma dívida cadastrada.'),
-    ds.length&&h('p',{class:'summary summary--foot'},'Total emprestado ',h('span',{class:'nowrap'},M.brl(sum('principal'))),' · juros no mês ',h('span',{class:'nowrap'},M.brl(sum('interest')))));
+        h('button',{class:'ghost',onclick:async()=>{if(confirm(`Excluir a dívida “${d.description}” (${M.brl(d.principal)})?`)){await S.deleteDebt(d);reload()}}},'Excluir'))))):h('p',{class:'empty'},icon('wallet',26),'Nenhuma dívida cadastrada.'));
 }
 export function form(U,c,d,back){
   const{h}=U,fe={},err=h('p',{class:'error',role:'alert'});
