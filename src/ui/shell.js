@@ -3,7 +3,7 @@
 // NÃO altera nenhuma regra: apenas observa a tela renderizada e chama as mesmas funções de navegação.
 import{icon}from './icons.js';
 const MAP=[[/^Voltar/,'back'],[/^(Novo cliente|Nova dívida|Adicionar documento)/,'plus'],[/^(Editar|Salvar alterações)/,'edit'],
-  [/^(Substituir|Adicionar) fotografia/,'edit'],[/^(Excluir|Remover)/,'trash'],[/^(Abrir|Visualizar|Pré-visualizar)/,'eye'],
+  [/^Substituir fotografia/,'refresh'],[/^Adicionar fotografia/,'camera'],[/^(Excluir|Remover)/,'trash'],[/^(Abrir|Visualizar|Pré-visualizar)/,'eye'],
   [/^(Baixar|Exportar|Gerar backup|Instalar)/,'download'],[/^(Pesquisar|Buscar)/,'search'],[/^Juros em lote/,'percent'],
   [/^Imprimir/,'print'],[/^Bloquear/,'lock'],[/^Sair/,'logout'],[/^Testar/,'shield'],[/^(Verificar|Restaurar)/,'upload'],
   [/^Confirmar/,'check'],[/^Salvar janela/,'check'],[/^Relatórios/,'file']];
