@@ -30,7 +30,7 @@ export async function page(U,{home,open,reopen}){
         h('div',{class:'field'},h('label',{for:'fr'},'Taxa de juros (%)'),h('input',{id:'fr',inputmode:'decimal',placeholder:'Ex.: 12',oninput:e=>{st.rate=e.target.value;paint()}})),
         h('div',{class:'field'},h('label',{for:'fc'},'Cliente'),fc))),
     sum,out,
-    h('section',{class:'card'},h('h2',{},'Vencimentos'),
+    h('section',{class:'card due-settings'},h('h2',{},'Vencimentos'),
       h('p',{class:'muted'},'Define quantos dias antes do vencimento uma dívida passa a ser sinalizada como “prestes a vencer”.'),
       h('div',{class:'inline-form'},h('div',{class:'field'},h('label',{for:'wd'},'Janela em dias'),wd),
         h('button',{class:'ghost',onclick:saveWin},'Salvar janela'))),
