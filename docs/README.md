@@ -21,6 +21,7 @@ Camada exclusivamente visual, sem alteração de regras de negócio, banco ou fl
 - **Componentes compartilhados:** `src/ui/kit.js` (iniciais, datas, plural, seletor de arquivo em pt-BR) e `src/ui/icons.js` (ícones SVG de traço fino, 1,6 px).
 - **Navegação:** `src/ui/shell.js` monta barra inferior até 719 px, rail de 96 px de 720 a 1099 px e menu lateral a partir de 1100 px. Título, ações de bloqueio/saída e navegação usam os mesmos componentes nas três faixas.
 - **Responsivo:** conteúdo em coluna única no celular; métricas em uma coluna no celular e três colunas a partir de 720 px; listas em 2 colunas e cartões lado a lado a partir de 1000 px; formulários em 2 colunas a partir de 720 px.
+- **Rolagem:** barras de rolagem ocultas em todos os tamanhos de tela; rolagem preservada por toque, roda e teclado.
 - **Login:** cena do escritório como banner no celular e painel lateral dividido a partir de 760 px, com sobreposição escura e degradê de transição para o painel, mantendo a leitura.
 - **Marca:** imagem original do chapéu inteira e sem recorte, com a moldura dourada original, usada na navegação, no login e nos ícones do aplicativo (192, 512, maskable e apple-touch), sem contorno adicional, sombra ou cantos arredondados.
 - **Estética:** sem bordas, linhas divisórias ou separadores; hierarquia por espaçamento, superfícies e contraste; botões e campos sem contorno em repouso.
