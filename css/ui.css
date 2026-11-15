@@ -136,7 +136,7 @@ input::file-selector-button:hover{background:#2a2723}
 .inline-form>button{flex:none}
 .window-form{margin-top:18px}
 .subhead{margin:26px 0 8px;font-size:.98rem;color:var(--ivory)}
-.media-field{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.media-field{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
 .media-field .avatar{width:76px;height:76px;font-size:1.3rem}
 .media-field .media-body{flex:1 1 200px;display:grid;gap:8px;min-width:0}
 .media-field .media-body .actions{margin:10px 0 0}
