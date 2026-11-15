@@ -35,6 +35,7 @@ function authView(setup,notice){
     h('h1',{},'SCIPIONE CRED'),h('p',{class:'tag'},'Gestão de clientes e dívidas'));
   const visual=h('section',{class:'auth-visual','aria-hidden':'true'},
     h('img',{class:'auth-photo',src:'assets/img/office.webp',alt:''}),
+    h('img',{class:'auth-photo alt',src:'assets/img/office-desk.webp',alt:''}),
     h('div',{class:'auth-quote'},h('p',{class:'eyebrow'},'Cofre privado'),
       h('p',{class:'quote-line'},'Seu crédito,',h('br'),'em ordem.')));
   show(h('div',{class:'auth-shell'},visual,h('section',{class:'auth-panel'},brand,form)));
