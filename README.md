@@ -51,6 +51,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 
 - Cofre protegido por senha, com PBKDF2-SHA256 (600.000 iterações) e AES-GCM de 256 bits.
 - Chave de dados (DEK) separada e embrulhada pela chave derivada da senha.
+- Sessão mantida ao recarregar a página e encerrada ao sair, bloquear ou após o tempo de inatividade.
 - Bloqueio automático por inatividade e atraso após tentativas incorretas.
 - Backup em ZIP, com criptografia opcional e verificação de integridade por SHA-256.
 - Restauração com modos **mesclar** ou **substituir tudo**.

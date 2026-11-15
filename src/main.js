@@ -93,6 +93,6 @@ async function appView(){
 }
 A.onLock(r=>authView(false,r==='idle'?'Bloqueado por inatividade.':r==='logout'?'Sessão encerrada.':null));
 P.registerSW();
-(async()=>{try{authView(!(await A.hasVault()))}catch(e){show(h('div',{class:'card auth'},h('h2',{},'Não foi possível abrir o banco local'),h('p',{class:'error'},fmt(e))))}})();
+(async()=>{try{const has=await A.hasVault();if(has&&await A.restoreSession()){await appView();return}authView(!has)}catch(e){show(h('div',{class:'card auth'},h('h2',{},'Não foi possível abrir o banco local'),h('p',{class:'error'},fmt(e))))}})();
 
 initShell({ctx,home:()=>appView(),clients:clientsView,debts:debtsPageView,reports:reportsView,backup:backupView,lock:A.lock});
