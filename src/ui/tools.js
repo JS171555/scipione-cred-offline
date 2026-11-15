@@ -11,7 +11,9 @@ export function reportsView(X){
   const period=()=>{const value=mode==='day'?dayI.value:monI.value;if(!value)throw new Error('Selecione o período.');return{mode,value}};
   const run=fn=>async()=>{err.textContent='';try{await fn()}catch(x){err.textContent=x.message}};
   const report=(p,d)=>[h('h1',{},'SCIPIONE CRED'),h('p',{},h('strong',{},'Relatório de dívidas'),` — ${R.label(p)}`),h('p',{},`Gerado em ${new Date().toLocaleString('pt-BR')}`),
-    d.debts.length?h('div',{},h('p',{class:'report-hint'},'Deslize a tabela para o lado para ver todas as colunas.'),h('div',{class:'tw'},h('table',{},h('thead',{},h('tr',{},...['Nome do cliente','Juros valor no mês','Valor emprestado','%','Data','Observações'].map(t=>h('th',{},t)))),
+    d.debts.length?h('div',{},h('p',{class:'report-hint'},'Deslize a tabela para o lado para ver todas as colunas.'),h('div',{class:'tw'},h('table',{},
+      h('colgroup',{},...['client','interest','principal','rate','date','notes'].map(c=>h('col',{class:'c-'+c}))),
+      h('thead',{},h('tr',{},...[['Nome do cliente',''],['Juros valor no mês','n'],['Valor emprestado','n'],['%','n'],['Data',''],['Observações','']].map(([t,c])=>h('th',{class:c},t)))),
       h('tbody',{},d.debts.map(x=>h('tr',{},h('td',{},x.client),h('td',{class:'n'},M.brl(x.interest)),h('td',{class:'n'},M.brl(x.principal)),h('td',{class:'n'},M.rate(x.rate)),h('td',{},x.date.slice(8)),h('td',{},x.notes||x.description)))),
       h('tfoot',{},h('tr',{},h('td',{},`Total (${d.debts.length})`),h('td',{class:'n'},M.brl(d.interest)),h('td',{class:'n'},M.brl(d.principal)),h('td',{colspan:3})))))):h('p',{},'Nenhuma dívida registrada neste período.'),
     h('p',{},'Data: dia do mês em que a dívida foi registrada.')];
