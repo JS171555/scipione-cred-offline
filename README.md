@@ -28,6 +28,19 @@ O arquivo `vercel.json` já define:
 
 Não são necessárias variáveis de ambiente. A Vercel entrega o site por HTTPS, que é o contexto exigido para o service worker e para o Web Crypto.
 
+## GitHub Pages (alternativa)
+
+O projeto também abre no GitHub Pages, sem build:
+
+1. Abra **Settings › Pages** no repositório.
+2. Em **Build and deployment**, escolha **Deploy from a branch**.
+3. Selecione a branch `main` e a pasta `/ (root)`.
+4. Salve e aguarde a publicação.
+
+O endereço fica no formato `https://js171555.github.io/scipione-cred-offline/`. O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão; o `vercel.json` é ignorado pelo Pages.
+
+Todos os caminhos do app são relativos, então o service worker, o manifesto e os ícones funcionam também nesse subdiretório. A diferença é que o GitHub Pages não permite os cabeçalhos de cache definidos no `vercel.json`.
+
 ## Dados e backup
 
 O cofre fica no IndexedDB do navegador. Cada origem (por exemplo, `localhost` e o domínio da Vercel) tem um cofre próprio; para levar dados de um ambiente a outro, gere um backup na tela **Backup e restauração** e restaure no novo endereço.
