@@ -1,6 +1,6 @@
 import * as A from './security/auth.js';
 import*as P from './pwa.js';
-import{clientsView,debtsPageView,openProfile}from './ui/clients.js';import*as Dash from './ui/dashboard.js';import{reportsView,backupView}from './ui/tools.js';import{settingsView}from './ui/settings.js';import{initShell}from './ui/shell.js';import{unwatch}from './core/live.js';import{longDay}from './ui/kit.js';import{icon}from './ui/icons.js';
+import{clientsView,debtsPageView,openProfile}from './ui/clients.js';import*as Dash from './ui/dashboard.js';import{reportsView,backupView}from './ui/tools.js';import{settingsView}from './ui/settings.js';import{initShell}from './ui/shell.js';import{unwatch}from './core/live.js';import{longDay}from './ui/kit.js';
 const root=document.getElementById('app');
 const h=(t,a={},...k)=>{const e=document.createElement(t);for(const[n,v]of Object.entries(a)){if(n.startsWith('on'))e.addEventListener(n.slice(2),v);else if(v!==false&&v!=null)e.setAttribute(n,v===true?'':v)}e.append(...k.flat().filter(x=>x!=null&&x!==false));return e};
 const show=(...n)=>root.replaceChildren(...n);
@@ -11,7 +11,7 @@ const field=(id,label,ac)=>h('div',{class:'field'},h('label',{for:id},label),h('
 function authView(setup,notice){
   document.body.classList.add('authing');
   const err=h('p',{class:'error',role:'alert'}),btn=h('button',{class:'primary',type:'submit'},setup?'Criar cofre':'Desbloquear');
-  const form=h('form',{class:'auth',novalidate:true,onsubmit:async e=>{
+  const form=h('form',{class:'card auth',novalidate:true,onsubmit:async e=>{
     e.preventDefault();err.textContent='';btn.disabled=true;const f=form.elements;
     try{
       if(setup){
@@ -22,28 +22,23 @@ function authView(setup,notice){
       }else await A.unlock(f.pw.value);
       form.reset();appView();
     }catch(x){err.textContent=fmt(x)}finally{btn.disabled=false}}},
-    h('div',{class:'auth-intro'},
-      h('p',{class:'auth-kicker'},setup?'Primeiro acesso':'Acesso privado'),
-      h('h2',{},setup?'Crie a senha do cofre':'Acesso ao cofre'),
-      setup&&h('p',{class:'muted'},'Os dados ficam só neste aparelho, criptografados com esta senha.')),
+    h('h2',{},setup?'Crie a senha do cofre':'Acesso ao cofre'),
     notice&&h('p',{class:'info',role:'status'},notice),
+    setup&&h('p',{class:'muted'},'Os dados ficam só neste aparelho, criptografados com esta senha.'),
     field('pw',setup?'Senha':'Senha do cofre',setup?'new-password':'current-password'),
     setup&&field('pw2','Repita a senha','new-password'),
     setup&&h('label',{class:'check'},h('input',{type:'checkbox',id:'ack'}),'Entendo que, se eu esquecer a senha, os dados não poderão ser recuperados.'),
     err,btn,
-    h('p',{class:'foot'},icon('lock',13),h('span',{},'Criptografia AES-GCM · chave derivada com PBKDF2 · nada sai do aparelho')));
-  const brand=h('div',{class:'auth-brand'},
-    h('span',{class:'mark auth-mark','aria-hidden':'true'},h('img',{src:'assets/img/hat.webp',alt:''})),
-    h('div',{class:'auth-brand-copy'},
-      h('p',{class:'auth-brand-name'},'SCIPIONE CRED'),
-      h('p',{class:'auth-brand-tag'},'Gestão de clientes e dívidas')));
+    h('p',{class:'foot'},'Criptografia AES-GCM · chave derivada com PBKDF2 · nada sai do aparelho'));
+  const brand=h('div',{class:'brand'},
+    h('span',{class:'mark brand-mark','aria-hidden':'true'},h('img',{src:'assets/img/hat.webp',alt:''})),
+    h('h1',{},'SCIPIONE CRED'),h('p',{class:'tag'},'Gestão de clientes e dívidas'));
   const visual=h('section',{class:'auth-visual','aria-hidden':'true'},
     h('img',{class:'auth-photo',src:'assets/img/office.webp',alt:''}),
     h('img',{class:'auth-photo alt',src:'assets/img/office-desk.webp',alt:''}),
-    h('div',{class:'auth-wash'}));
-  const quote=h('div',{class:'auth-quote'},h('p',{class:'eyebrow'},'Cofre privado'),
-    h('p',{class:'quote-line'},'Seu crédito,',h('br'),'em ordem.'));
-  show(h('div',{class:'auth-shell'},visual,brand,quote,h('section',{class:'auth-panel'},form)));
+    h('div',{class:'auth-quote'},h('p',{class:'eyebrow'},'Cofre privado'),
+      h('p',{class:'quote-line'},'Seu crédito,',h('br'),'em ordem.')));
+  show(h('div',{class:'auth-shell'},visual,h('section',{class:'auth-panel'},brand,form)));
 }
 async function appView(){
   document.body.classList.remove('authing');
