@@ -62,7 +62,7 @@ async function profile(id){
         h('span',{class:'badge badge--type'},pj?'Pessoa jurídica':'Pessoa física'),
         h('p',{},`${pj?'CNPJ':'CPF'} ${c.doc}`))),
       h('dl',{class:'meta'},row('Telefone',c.phone),row('Celular',c.mobile),row('E-mail',c.email),...(pj?[]:[row('RG',c.rg)]),row('Endereço',c.address,true)),
-      h('div',{class:'actions profile-actions'},h('button',{class:'primary',onclick:()=>form(c)},'Editar perfil'),rep,
+      h('div',{class:'actions'},h('button',{class:'primary',onclick:()=>form(c)},'Editar perfil'),rep,
         h('button',{onclick:()=>rep.click()},c.photoId?'Substituir fotografia':'Adicionar fotografia'),
         c.photoId&&h('button',{class:'ghost',onclick:run(()=>S.changePhoto(c,{remove:true}))},'Remover fotografia'),
         h('button',{class:'danger',onclick:async()=>{if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;try{await S.deleteClient(id);list()}catch(x){err.textContent=x.message}}},'Excluir cliente'))),

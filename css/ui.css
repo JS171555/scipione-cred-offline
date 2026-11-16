@@ -80,9 +80,6 @@ button.iconbtn[aria-current=page]{background:var(--gold-softer);color:var(--gold
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;align-items:center}
 .actions button{min-height:44px;min-width:0;padding:0 14px;font-size:.86rem;border-radius:12px}
 .actions .danger{margin-left:auto}
-.profile-actions{justify-content:center}
-.profile-actions button{justify-content:flex-start;text-align:left}
-.profile-actions .danger{margin-left:0}
 .actions--grid{display:grid;grid-template-columns:1fr;gap:10px}
 @media(min-width:560px){.actions--grid{grid-template-columns:1fr 1fr}}
 .actions--grid button{width:100%;min-height:46px;font-size:.9rem}
