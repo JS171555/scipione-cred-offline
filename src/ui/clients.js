@@ -17,6 +17,7 @@ function form(c={}){
   const fld=(id,label,type='text',ac,full=false)=>{const e=h('small',{class:'error'});fe[id]=e;return h('div',{class:'field'+(full?' field--full':''),id:'f-'+id},h('label',{for:id},label),h('input',{id,type,autocomplete:ac,value:c[id]||''}),e)};
   const paint=async()=>{let u=null;if(photo?.file){u=URL.createObjectURL(photo.file);urls.push(u)}else if(!photo?.remove&&c.photoId)u=url(await S.blobBytes(c.photoId),c.photoType);
     prev.replaceChildren(u?h('img',{src:u,alt:'Fotografia do cliente'}):icon('camera',26))};
+  const removeClient=async()=>{if(!c.id)return;err.textContent='';try{const cnt=await S.counts(c.id);if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;await S.deleteClient(c.id);list()}catch(x){err.textContent=x.message}};
   const btn=h('button',{class:'primary',type:'submit'},c.id?'Salvar alterações':'Cadastrar cliente');
   const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');btn.disabled=true;
     const g=k=>f.elements[k].value.trim(),t=g('type');
@@ -33,7 +34,7 @@ function form(c={}){
       fld('doc','CPF'),fld('rg','RG'),fld('phone','Telefone','tel','tel'),fld('mobile','Celular','tel','tel'),fld('email','E-mail','email','email'),
       fld('address','Endereço completo','text','street-address',true)),
     err,
-    h('div',{class:'form-actions'},btn,h('button',{type:'button',onclick:()=>c.id?profile(c.id):list()},'Cancelar')));
+    h('div',{class:'form-actions'},btn,h('button',{type:'button',onclick:()=>c.id?profile(c.id):list()},'Cancelar'),c.id&&h('button',{type:'button',class:'danger form-delete',onclick:removeClient},'Excluir cliente')));
   const kind=()=>f.elements.type.value==='PJ'?'cnpj':'cpf',sync=()=>{const pj=kind()==='cnpj';f.querySelector('label[for=doc]').textContent=pj?'CNPJ':'CPF';f.querySelector('#f-rg').hidden=pj;f.elements.doc.value=V.mask[kind()](f.elements.doc.value)};
   f.elements.type.onchange=sync;f.elements.doc.addEventListener('input',e=>e.target.value=V.mask[kind()](e.target.value));
   ['phone','mobile'].forEach(k=>f.elements[k].addEventListener('input',e=>e.target.value=V.mask.phone(e.target.value)));
@@ -57,12 +58,17 @@ async function profile(id){
   const dl=async d=>{try{const u=URL.createObjectURL(new Blob([await S.docBytes(d)],{type:d.type})),a=h('a',{href:u,download:fname(d)});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),6e4)}catch(x){err.textContent=x.message}};
   render(top('client',c.name,list),
     err,
-    h('section',{class:'card'},
-      h('div',{class:'profile-head'},av,h('div',{class:'who'},
-        h('span',{class:'badge badge--type'},pj?'Pessoa jurídica':'Pessoa física'),
-        h('p',{},`${pj?'CNPJ':'CPF'} ${c.doc}`))),
+    h('section',{class:'card profile-card'},
+      rep,
+      h('button',{class:'profile-edit-mobile',type:'button','aria-label':'Editar perfil',onclick:()=>form(c)},icon('edit',24)),
+      h('div',{class:'profile-head'},
+        h('div',{class:'profile-photo'},av,
+          h('button',{class:'profile-photo-mobile',type:'button','aria-label':c.photoId?'Substituir fotografia':'Adicionar fotografia',onclick:()=>rep.click()},icon(c.photoId?'refresh':'camera',18))),
+        h('div',{class:'who'},
+          h('span',{class:'badge badge--type'},pj?'Pessoa jurídica':'Pessoa física'),
+          h('p',{},`${pj?'CNPJ':'CPF'} ${c.doc}`))),
       h('dl',{class:'meta'},row('Telefone',c.phone),row('Celular',c.mobile),row('E-mail',c.email),...(pj?[]:[row('RG',c.rg)]),row('Endereço',c.address,true)),
-      h('div',{class:'actions profile-actions'},h('button',{class:'primary',onclick:()=>form(c)},h('span',{class:'profile-action-label'},'Editar perfil')),rep,
+      h('div',{class:'actions profile-actions'},h('button',{class:'primary',onclick:()=>form(c)},h('span',{class:'profile-action-label'},'Editar perfil')),
         h('button',{onclick:()=>rep.click()},h('span',{class:'profile-action-label'},c.photoId?'Substituir fotografia':'Adicionar fotografia')),
         c.photoId&&h('button',{class:'ghost',onclick:run(()=>S.changePhoto(c,{remove:true}))},h('span',{class:'profile-action-label'},'Remover fotografia')),
         h('button',{class:'danger',onclick:async()=>{if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;try{await S.deleteClient(id);list()}catch(x){err.textContent=x.message}}},h('span',{class:'profile-action-label'},'Excluir cliente')))),
