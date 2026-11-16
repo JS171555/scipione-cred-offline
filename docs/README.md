@@ -2,7 +2,7 @@
 Executar: `python3 -m http.server 8080` (ou `npx serve`) nesta pasta e abrir http://localhost:8080. Para celular/instalação, publique em HTTPS (service worker e Web Crypto exigem contexto seguro).
 Teste da criptografia: `node tests/crypto.test.mjs`.
 
-Módulos: `db/idb.js` (IndexedDB versionado, gravação confirmada em oncomplete) · `security/crypto.js` (PBKDF2 600 mil + AES-GCM, DEK embrulhada) · `security/auth.js` (cadastro, login, sessão persistente na mesma aba, bloqueio, inatividade, atraso após 5 erros) · `pwa.js` · `sw.js` (cache offline) · `main.js` (telas) · `ui/settings.js` (configurações).
+Módulos: `db/idb.js` (IndexedDB versionado, gravação confirmada em oncomplete) · `security/crypto.js` (PBKDF2 600 mil + AES-GCM, DEK embrulhada) · `security/auth.js` (cadastro, login, sessão persistente na mesma aba, bloqueio, inatividade, atraso após 5 erros) · `pwa.js` · `sw.js` (cache offline) · `main.js` (telas) · `ui/settings.js` (configurações) · `services/google-drive.js` (OAuth e Drive API) · `config/google.js` (ID público do cliente).
 Identidade: tokens em `css/app.css` (fundo `#080808`, cards `#171717`, dourado `#B89A62`, marfim `#E8DFC9`, bronze `#34302A`); Cormorant Garamond e DM Sans em `assets/fonts`, com fallback local e cache offline.
 Safari/iOS: campos `date` e `month` recebem `min-width:0`, `max-width:100%` e reset de aparência nativa para não estourarem os cards; o seletor nativo continua abrindo ao toque.
 
@@ -13,6 +13,8 @@ Limites: a criptografia protege dados em repouso; não protege contra aparelho c
 - **Excel:** `src/export/xlsx.js` gera o .xlsx (XML + ZIP via fflate), sem biblioteca de planilha. Abas: Dívidas (registradas no período) e Movimentações (histórico no período).
 - **Relatório A4:** HTML com CSS de impressão (`@page` retrato/paisagem). Pré-visualização na tela e botão Imprimir.
 - **Backup (formatVersion 1):** ZIP com `manifest.json` (contagens, versão, SHA-256 de cada arquivo), `data/*.json` e `files/<id>.bin`. Criptografado: ZIP externo com `manifest.json` (salt, iterações) + `payload.enc` (AES-GCM, PBKDF2 600 mil). A senha do cofre não entra no backup; cada aparelho tem o seu cofre.
+- **Google Drive:** OAuth 2.0 no navegador via Google Identity Services, escopo `drive.file`, pasta `SCIPIONE CRED - Backups`, upload multipart e download com SHA-256 gravado em `appProperties`. O token fica só na memória da aba; o `client_secret` nunca é usado. É necessário um cliente OAuth **Web** (o JSON instalado é recusado pelo Google no navegador); veja `docs/google-drive.md`.
+  A CSP libera `accounts.google.com` e `www.googleapis.com`; `style-src` permite estilos inline porque o script do Google Identity Services os injeta, enquanto `script-src` continua restrito a `'self'` e ao domínio do Google.
 - **Restauração:** valida estrutura, SHA-256 e relacionamentos; prepara tudo antes de tocar no banco; troca em uma única transação. Modos: substituir tudo ou mesclar (cliente com mesmo CPF/CNPJ não é duplicado; dívidas com id já existente são ignoradas).
 - **Instalação:** servir a pasta por HTTPS (ou localhost) e instalar pelo navegador (iPhone: Safari › Compartilhar › Adicionar à Tela de Início). Ao criar arquivos novos, incluí-los em `FILES` no `sw.js` e incrementar `V`.
 - **Testes:** `for t in money validators crypto stage4 backup; do node tests/$t.test.mjs; done`.

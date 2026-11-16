@@ -36,7 +36,8 @@ const P={
   calendar:'M4 6.5h16v13H4zM4 10.5h16M8.5 4v4M15.5 4v4',
   image:'M3.5 5.5h17v13h-17zM3.5 15l4.5-4.5 4 4 3-3 5 5M15 9.5h.01',
   info:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 11v5M12 8h.01',
-  filter:'M4 6.5h16M7 12h10M10 17.5h4'
+  filter:'M4 6.5h16M7 12h10M10 17.5h4',
+  cloud:'M7 18.5h10a4 4 0 0 0 .4-8 6 6 0 0 0-11.6 1.5A3.5 3.5 0 0 0 7 18.5'
 };
 const NS='http://www.w3.org/2000/svg';
 export function icon(n,s=20){

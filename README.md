@@ -115,6 +115,8 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 - Bloqueio automático por inatividade e atraso após tentativas incorretas.
 - Backup em ZIP, com criptografia opcional e verificação de integridade por SHA-256.
 - Restauração com modos **mesclar** ou **substituir tudo**.
+- Backup e restauração opcionais no Google Drive, com OAuth no navegador,
+  escopo mínimo `drive.file` e verificação SHA-256 antes de restaurar.
 
 ### Configurações
 
@@ -268,6 +270,12 @@ O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos
 - A restauração valida a estrutura, os hashes SHA-256 e os relacionamentos antes de alterar o banco.
 - No modo **mesclar**, clientes com o mesmo CPF/CNPJ não são duplicados e dívidas com o mesmo `id` são ignoradas.
 - No modo **substituir tudo**, o estado atual é apagado e trocado pelo backup em uma única transação.
+- O Google Drive é um segundo destino, não substitui o backup local. A conta é
+  autorizada no navegador e o token fica apenas na memória da aba.
+
+> Para o Google Drive, use um cliente OAuth do tipo **Aplicativo da Web**. O JSON
+> instalado fornecido inicialmente é recusado pelo Google no navegador. O passo a
+> passo e os erros comuns estão em [docs/google-drive.md](docs/google-drive.md).
 
 > Cada origem tem um cofre próprio. `localhost`, o domínio da Vercel e o endereço do GitHub Pages são cofres separados. Para migrar dados entre ambientes, gere um backup e restaure no novo endereço.
 
