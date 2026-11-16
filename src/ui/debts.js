@@ -3,11 +3,15 @@ const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOStr
 const dBR=s=>s?s.split('-').reverse().join('/'):'—';
 export async function section(U,c,reload){
   const{h}=U,ds=await S.listDebts(c.id);
-  return h('section',{class:'card'},
+  return h('section',{class:'card card--debts'},
     h('div',{class:'section-head'},h('h2',{},'Dívidas'),h('button',{class:'primary',onclick:()=>form(U,c,null,reload)},'Nova dívida')),
     ds.length?h('ul',{class:'list'},ds.map(d=>h('li',{class:'doc'},
       h('div',{class:'doc-main'},h('div',{class:'doc-title'},d.description),
-        h('div',{class:'doc-line'},h('span',{class:'nowrap'},M.brl(d.principal)),` a ${M.rate(d.rate)} ao mês · juros de `,h('span',{class:'nowrap'},M.brl(d.interest))),
+        h('div',{class:'doc-line'},h('span',{class:'nowrap debt-principal'},M.brl(d.principal)),
+          h('span',{class:'debt-rate'},` a ${M.rate(d.rate)} ao mês`),
+          h('span',{class:'debt-interest'},
+            h('span',{class:'debt-interest-label'},' · juros de '),
+            h('span',{class:'debt-interest-value'},M.brl(d.interest)))),
         h('div',{class:'doc-meta'},`Registro ${dBR(d.date)} · vencimento ${dBR(d.due)}${d.notes?` · ${d.notes}`:''}`)),
       h('div',{class:'actions'},h('button',{class:'ghost',onclick:()=>form(U,c,d,reload)},'Editar'),
         h('button',{class:'ghost',onclick:async()=>{if(confirm(`Excluir a dívida “${d.description}” (${M.brl(d.principal)})?`)){await S.deleteDebt(d);reload()}}},'Excluir'))))):h('p',{class:'empty'},icon('wallet',26),'Nenhuma dívida cadastrada.'));
