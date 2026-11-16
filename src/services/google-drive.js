@@ -64,7 +64,7 @@ export function preload(){return configState().configured?loadGis().catch(()=>{}
 function authMessage(e){
   const code=e?.type||e?.error||'auth';
   if(code==='popup_closed')return 'A autorização do Google não foi concluída. Verifique se o cliente é do tipo Aplicativo da Web, se a origem está autorizada e tente novamente.';
-  if(code==='access_denied')return 'O acesso ao Google Drive não foi autorizado.';
+  if(code==='access_denied')return 'O Google bloqueou o acesso. Se o app OAuth está em modo de teste, adicione sua conta em “Usuários de teste” na tela de consentimento do Google Cloud e tente novamente.';
   if(code==='origin_mismatch'||/origin/i.test(code))return 'A origem deste site não está autorizada no cliente OAuth do Google Cloud.';
   if(code==='invalid_client')return 'O cliente OAuth não é válido para uso no navegador. Use um cliente do tipo "Aplicativo da Web".';
   return e?.message||'Não foi possível autorizar o acesso ao Google Drive.';

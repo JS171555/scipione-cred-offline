@@ -60,12 +60,32 @@ deve ser colocado no repositório; a interface usa apenas o `client_id` público
 - A Vercel envia `Cross-Origin-Opener-Policy: same-origin-allow-popups` para
   manter a janela do Google Identity Services funcional.
 
+## Erro 403 `access_denied` (app em teste)
+
+Se o Google mostrar **“Acesso bloqueado”** e informar que o app está em teste,
+significa que a conta usada no popup não está na lista de testadores do projeto
+OAuth. Isso não é um erro do SCIPIONE CRED.
+
+1. Abra a tela de consentimento do projeto
+   `oval-turbine-457821-h3`:
+   [Google Auth Platform → Audience](https://console.cloud.google.com/auth/audience?project=oval-turbine-457821-h3)
+   ou
+   [Tela de consentimento OAuth](https://console.cloud.google.com/apis/credentials/consent?project=oval-turbine-457821-h3).
+2. Em **Usuários de teste** / **Test users**, clique em **Adicionar usuários**
+   e inclua exatamente o e-mail usado no popup, por exemplo
+   `js1715557@gmail.com`.
+3. Salve e aguarde alguns minutos. Abra o app em uma janela anônima e clique em
+   **Conectar Google Drive** novamente, escolhendo essa mesma conta.
+
+Alternativamente, publique o app em **Publish app** para sair do modo de teste.
+Para uso pessoal, adicionar o testador é o caminho mais rápido.
+
 ## Erros comuns
 
 | Erro | Causa provável | Correção |
 | --- | --- | --- |
 | `invalid_client` / `no registered origin` | Cliente instalado ou origem não autorizada | Usar o cliente Web configurado ou adicionar a origem |
 | `origin_mismatch` | Origem atual fora da lista | Adicionar a origem exata no Google Cloud |
-| `access_denied` | Consentimento cancelado ou usuário fora dos testes | Autorizar novamente / incluir usuário de teste |
+| `access_denied` / Erro 403 | App em teste e conta fora dos testadores, ou consentimento cancelado | Incluir o e-mail em **Usuários de teste** ou publicar o app |
 | Drive API desativada | API não habilitada no projeto | Ativar a Google Drive API |
 | Sessão expirada | Token de acesso venceu | Clicar em **Conectar Google Drive** novamente |
