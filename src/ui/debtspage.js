@@ -1,5 +1,6 @@
 import*as M from '../domain/money.js';import*as S from '../services/debts.js';import*as C from '../services/clients.js';import{form}from './debts.js';
 import*as T from '../domain/due.js';import{getDueWindow}from '../services/settings.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{plural,pager}from './kit.js';
+import{isUnlocked}from '../security/auth.js';
 const dBR=s=>s.split('-').reverse().join('/'),PER=10;
 export async function page(U,{home,open,reopen}){
   const{h}=U,st={sort:'new',status:'all',rate:'',client:'',page:1};let ds=[],cs=[],win=7;
@@ -30,8 +31,8 @@ export async function page(U,{home,open,reopen}){
         h('div',{class:'field'},h('label',{for:'fr'},'Taxa de juros (%)'),h('input',{id:'fr',inputmode:'decimal',placeholder:'Ex.: 12',oninput:e=>{st.rate=e.target.value;st.page=1;paint()}})),
         h('div',{class:'field'},h('label',{for:'fc'},'Cliente'),fc))),
     sum,out,pg,err);
-  const load=async()=>{[ds,cs,win]=await Promise.all([S.listDebts(),C.listClients(),getDueWindow()]);cs.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  const load=async()=>{if(!isUnlocked())return;[ds,cs,win]=await Promise.all([S.listDebts(),C.listClients(),getDueWindow()]);if(!isUnlocked())return;cs.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
     const names=new Map(cs.map(c=>[c.id,c.name]));ds=ds.map(d=>({...d,clientName:names.get(d.clientId)||'—'}));
     fc.replaceChildren(h('option',{value:''},'Todos os clientes'),...cs.map(c=>h('option',{value:c.id,selected:c.id===st.client},c.name)));nc.replaceChildren(...cs.map(c=>h('option',{value:c.id},c.name)));paint()};
-  await load();watch(load);
+  watch(load);await load();
 }

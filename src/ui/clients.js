@@ -13,9 +13,13 @@ export const debtsPageView=ctx=>{X=ctx;P.page(U,{home:X.home,open:profile,reopen
 export const openProfile=(ctx,id)=>{X=ctx;profile(id)};
 function list(q){return CL.clientList(U,{home:X.home,open:profile,newClient:()=>form(),bulk:()=>D.bulk(U,list)},typeof q==='string'?q:'')}
 function form(c={}){
-  let photo;const err=h('p',{class:'error',role:'alert'}),fe={},prev=h('div',{class:'avatar avatar--lg'},icon('camera',26));
+  let photo,previewUrl=null,previewSeq=0;const err=h('p',{class:'error',role:'alert'}),fe={},prev=h('div',{class:'avatar avatar--lg'},icon('camera',26));
   const fld=(id,label,type='text',ac,full=false)=>{const e=h('small',{class:'error'});fe[id]=e;return h('div',{class:'field'+(full?' field--full':''),id:'f-'+id},h('label',{for:id},label),h('input',{id,type,autocomplete:ac,value:c[id]||''}),e)};
-  const paint=async()=>{let u=null;if(photo?.file){u=URL.createObjectURL(photo.file);urls.push(u)}else if(!photo?.remove&&c.photoId)u=url(await S.blobBytes(c.photoId),c.photoType);
+  const paint=async()=>{const seq=++previewSeq;let u=null;
+    if(photo?.file){u=URL.createObjectURL(photo.file);urls.push(u)}
+    else if(!photo?.remove&&c.photoId){try{u=url(await S.blobBytes(c.photoId),c.photoType)}catch{return}}
+    if(seq!==previewSeq||!prev.isConnected){if(u)URL.revokeObjectURL(u);return}
+    if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=u;
     prev.replaceChildren(u?h('img',{src:u,alt:'Fotografia do cliente'}):icon('camera',26))};
   const removeClient=async()=>{if(!c.id)return;err.textContent='';try{const cnt=await S.counts(c.id);if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;await S.deleteClient(c.id);list()}catch(x){err.textContent=x.message}};
   const btn=h('button',{class:'primary',type:'submit'},c.id?'Salvar alterações':'Cadastrar cliente');
@@ -42,14 +46,18 @@ function form(c={}){
 }
 const EXT={'image/webp':'.webp','image/jpeg':'.jpg','image/png':'.png','application/pdf':'.pdf'};
 const fname=d=>EXT[d.type]?d.name.replace(/\.[a-z0-9]{2,5}$/i,'')+EXT[d.type]:d.orig;
-function viewImg(u,name){const d=h('dialog',{class:'viewer'},h('img',{src:u,alt:name}),h('button',{class:'ghost',onclick:()=>d.close()},icon('close',18),'Fechar'));d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal()}
+function viewImg(u,name){const d=h('dialog',{class:'viewer','aria-label':'Visualizar '+name},h('img',{src:u,alt:name}),h('button',{class:'ghost',onclick:()=>d.close()},icon('close',18),'Fechar'));d.addEventListener('close',()=>{URL.revokeObjectURL(u);d.remove()});document.body.append(d);d.showModal()}
 async function profile(id){
+  if(!A.isUnlocked())return;
   const c=await S.getClient(id);if(!c)return list();
+  if(!A.isUnlocked())return;
   const[docs,hist]=await Promise.all([S.listDocs(id),S.listHistory(id)]);
+  if(!A.isUnlocked())return;
   const dsec=await D.section(U,c,()=>profile(id));
+  if(!A.isUnlocked())return;
   const err=h('p',{class:'error',role:'alert'}),run=fn=>async(...a)=>{err.textContent='';try{await fn(...a);profile(id)}catch(x){err.textContent=x.message}};
   const av=h('div',{class:'avatar avatar--lg'},h('span',{class:'muted'},initials(c.name)));
-  if(c.photoId)S.blobBytes(c.photoId).then(b=>av.replaceChildren(h('img',{src:url(b,c.photoType),alt:'Fotografia de '+c.name})));
+  if(c.photoId)S.blobBytes(c.photoId).then(b=>{if(!av.isConnected)return;av.replaceChildren(h('img',{src:url(b,c.photoType),alt:'Fotografia de '+c.name}))}).catch(()=>{});
   const rep=h('input',{type:'file',accept:'image/*',hidden:true,onchange:run(e=>e.target.files[0]&&S.changePhoto(c,{file:e.target.files[0]}))});
   const row=(k,v,wide)=>h('div',{class:wide?'wide':''},h('dt',{},k),h('dd',{},v||'—')),pj=c.type==='PJ';
   const cat=h('select',{id:'cat'},S.CATS.map(x=>h('option',{value:x},x))),nm=h('input',{id:'dn'}),fl=h('input',{id:'df',type:'file',accept:'image/*,application/pdf,.doc,.docx'});

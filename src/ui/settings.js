@@ -16,6 +16,7 @@ export async function settingsView(X){
   unwatch();
   const{h,show,home,fmt}=X;
   const[st,off,win0]=await Promise.all([P.storageInfo(),P.offlineReady(),getDueWindow()]);
+  if(!A.isUnlocked())return;
   const toast=h('div',{class:'toast',role:'status','aria-live':'polite','aria-atomic':'true',hidden:true});
   let toastTimer=0,toastOutTimer=0;
   const hideToast=()=>{clearTimeout(toastTimer);toast.classList.add('is-out');toastOutTimer=setTimeout(()=>{toast.hidden=true;toast.classList.remove('is-out')},240)};

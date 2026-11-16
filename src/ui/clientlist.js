@@ -1,4 +1,5 @@
 import*as S from '../services/clients.js';import*as DS from '../services/debts.js';import*as M from '../domain/money.js';import{match}from '../services/search.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{pager}from './kit.js';import{clientAvatar}from './avatar.js';
+import{isUnlocked}from '../security/auth.js';
 const PER=20;
 export async function clientList(U,{home,open,newClient,bulk},q0=''){
   const{h}=U,st={q:q0,sort:'az',rate:'',page:1};let cs=[],ds=[];const out=h('div'),pg=h('div'),cnt=h('p',{class:'count',role:'alert',hidden:true});
@@ -28,6 +29,6 @@ export async function clientList(U,{home,open,newClient,bulk},q0=''){
       h('div',{class:'form-grid filters'},fld('cs','Ordenar',so),fld('cr','Filtrar por taxa de juros (%)',rt)),
       h('div',{class:'actions'},h('button',{class:'primary',onclick:newClient},'Novo cliente'),h('button',{onclick:bulk},'Juros em lote'))),
     cnt,out,pg);
-  const load=async()=>{[cs,ds]=await Promise.all([S.listClients(),DS.listDebts()]);paint()};
-  await load();watch(load);
+  const load=async()=>{if(!isUnlocked())return;[cs,ds]=await Promise.all([S.listClients(),DS.listDebts()]);if(!isUnlocked())return;paint()};
+  watch(load);await load();
 }

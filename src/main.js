@@ -9,6 +9,7 @@ const fmt=e=>e?.name==='QuotaExceededError'?'Sem espaço de armazenamento no apa
 const field=(id,label,ac)=>h('div',{class:'field'},h('label',{for:id},label),h('input',{id,type:'password',autocomplete:ac,required:true}));
 
 function authView(setup,notice){
+  unwatch();
   document.body.classList.add('authing');
   const err=h('p',{class:'error',role:'alert'}),btn=h('button',{class:'primary',type:'submit'},setup?'Criar cofre':'Desbloquear');
   const form=h('form',{class:'card auth',novalidate:true,onsubmit:async e=>{
@@ -44,6 +45,7 @@ async function appView(){
   document.body.classList.remove('authing');
   unwatch();P.requestPersist();
   const dash=await Dash.card({h,search:q=>clientsView(ctx(),q),openClient:id=>openProfile(ctx(),id),openDebts:()=>debtsPageView(ctx()),openClients:()=>clientsView(ctx())});
+  if(!A.isUnlocked())return;
   const hoje=longDay(new Date());
   show(
     h('header',{class:'top brandbar','data-page':'home'},

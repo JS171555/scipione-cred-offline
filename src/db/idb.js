@@ -24,7 +24,7 @@ export const getAll=s=>run(s,'readonly',t=>t.objectStore(s).getAll());
 export const put=(s,v)=>run(s,'readwrite',t=>t.objectStore(s).put(v));
 export const del=(s,k)=>run(s,'readwrite',t=>t.objectStore(s).delete(k));
 // Várias operações em UMA transação (tudo ou nada). Cifre os dados antes: ops = [['put'|'delete', store, valor|chave]].
-export const batch=async ops=>{const db=await openDB();return new Promise((res,rej)=>{
+export const batch=async ops=>{if(!ops.length)return;const db=await openDB();return new Promise((res,rej)=>{
   const t=db.transaction([...new Set(ops.map(o=>o[1]))],'readwrite',{durability:'strict'});
   try{for(const[op,s,v]of ops)t.objectStore(s)[op](v)}catch(e){t.abort();return rej(e)}
   t.oncomplete=()=>{res();dispatchEvent(new Event('data-changed'))};t.onerror=t.onabort=()=>rej(t.error||new Error('Falha na gravação.'));});};

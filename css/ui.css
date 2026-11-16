@@ -194,7 +194,7 @@ input::file-selector-button:hover{background:#302c27}
 .alert p{margin:0;flex:1 1 160px;font-size:.9rem;line-height:1.45}
 .alert.bad{background:var(--danger-soft)}
 .alert.bad>.i{color:var(--danger)}
-.alert button{background:transparent;color:var(--gold-strong);min-height:38px;padding:0 4px;font-size:.86rem;font-weight:600;gap:4px}
+.alert button{background:transparent;color:var(--gold-strong);min-height:44px;padding:0 4px;font-size:.86rem;font-weight:600;gap:4px}
 .alert.bad button{color:var(--danger)}
 .alert button:hover:not(:disabled){background:transparent;color:var(--ivory)}
 @media(max-width:380px){.alert{flex-wrap:wrap}.alert button{width:100%;justify-content:flex-start;padding:0}}
@@ -235,7 +235,7 @@ ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;fo
 .pager-status{margin:14px 0 0;font-size:.82rem;color:var(--muted);letter-spacing:.02em;font-variant-numeric:tabular-nums}
 .pager .pager-status{margin:0}
 .pager-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
-.pager-btn{min-height:38px;min-width:38px;padding:0 10px;border-radius:11px;background:transparent;color:var(--muted);
+.pager-btn{min-height:44px;min-width:44px;padding:0 10px;border-radius:11px;background:transparent;color:var(--muted);
   font-size:.82rem;font-weight:500;gap:4px;letter-spacing:.01em}
 .pager-btn:hover:not(:disabled){background:var(--surface-2);color:var(--ivory)}
 .pager-btn.is-current{background:var(--gold-soft);color:var(--gold-strong);font-weight:600}
@@ -246,11 +246,11 @@ ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;fo
   .pager{display:block;margin-top:16px}
   .pager .pager-status{margin:0 0 10px}
   .pager-nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
-  .pager-step{width:100%;min-height:42px}
+  .pager-step{width:100%;min-height:44px}
   .pager-prev{grid-column:1;grid-row:1;justify-content:flex-start}
   .pager-next{grid-column:2;grid-row:1;justify-content:flex-end}
   .pager-nums{grid-column:1/-1;grid-row:2;justify-content:center;margin-top:2px}
-  .pager-nums .pager-btn{min-width:36px;padding:0 8px}
+  .pager-nums .pager-btn{min-width:44px;padding:0 6px}
 }
 
 /* ---------- Cartões de item (dívidas, documentos) ---------- */
@@ -279,10 +279,10 @@ ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;fo
 .profile-head .who{display:grid;gap:6px;min-width:0;flex:1 1 160px;padding-right:48px}
 .profile-head .who .badge{justify-self:start}
 .profile-head .who p{margin:0;font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
-.profile-edit-action{display:grid;place-items:center;position:absolute;top:8px;right:8px;z-index:3;width:40px;height:40px;min-width:40px;min-height:40px;padding:0;border-radius:50%;background:transparent;color:var(--gold)}
+.profile-edit-action{display:grid;place-items:center;position:absolute;top:6px;right:6px;z-index:3;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;background:transparent;color:var(--gold)}
 .profile-edit-action .i{width:26px;height:26px}
 .profile-edit-action:hover{background:var(--gold-softer);color:var(--gold-strong)}
-.profile-photo-action{display:grid;place-items:center;position:absolute;right:-5px;bottom:-5px;z-index:2;width:38px;height:38px;min-width:38px;min-height:38px;padding:0;border-radius:50%;background:var(--gold);color:#080808;box-shadow:0 5px 16px -8px #000}
+.profile-photo-action{display:grid;place-items:center;position:absolute;right:-6px;bottom:-6px;z-index:2;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;background:var(--gold);color:#080808;box-shadow:0 5px 16px -8px #000}
 .profile-photo-action .i{width:18px;height:18px}
 .profile-photo-action:hover{background:var(--gold-strong)}
 .meta{display:grid;grid-template-columns:1fr;gap:16px;margin:0}

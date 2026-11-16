@@ -1,11 +1,14 @@
 import*as M from '../domain/money.js';import{stats}from '../services/dashboard.js';import{watch}from '../core/live.js';import{icon}from './icons.js';import{when,plural}from './kit.js';import{clientAvatar}from './avatar.js';
+import{isUnlocked}from '../security/auth.js';
 export async function card({h,search,openClient,openDebts,openClients}){
   const box=h('div'),q=h('input',{id:'gq',type:'search',autocomplete:'off','aria-label':'Buscar clientes',placeholder:'Buscar clientes'});
   const tile=(label,value,ico,sub,mods='')=>h('div',{class:'tile '+mods},
     h('span',{class:'tile-ico'},icon(ico,24)),
     h('div',{class:'tile-body'},h('span',{class:'label'},label),h('strong',{},value),sub&&h('span',{class:'sub'},sub)));
   const draw=async()=>{
+    if(!isUnlocked())return;
     const s=await stats();
+    if(!isUnlocked())return;
     const bits=[];
     if(s.overdue)bits.push(plural(s.overdue,'vencida','vencidas'));
     if(s.soon)bits.push(`${s.soon} a vencer`);
@@ -31,7 +34,7 @@ export async function card({h,search,openClient,openDebts,openClients}){
         h('section',{class:'card'},h('div',{class:'section-head'},h('h2',{},'Atividades recentes')),recent))];
     box.replaceChildren(...parts.filter(Boolean));
   };
-  await draw();watch(draw);
+  watch(draw);await draw();
   return[
     h('form',{class:'search search--page',role:'search',onsubmit:e=>{e.preventDefault();search(q.value.trim())}},
       h('label',{class:'sr',for:'gq'},'Pesquisar clientes por nome, CPF, CNPJ, RG, telefone ou e-mail'),

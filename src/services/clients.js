@@ -30,7 +30,7 @@ const rel=async(s,id)=>(await db.getAll(s)).filter(r=>r.clientId===id);
 export const counts=async id=>({docs:(await rel('documents',id)).length,debts:(await rel('debts',id)).length});
 export async function deleteClient(id){
   const c=await getClient(id);if(!c)return;const ops=[];
-  for(const r of await rel('documents',id)){ops.push(['delete','documents',r.id],['delete','blobs',(await one('documents',r.id)).blobId])}
+  for(const d of await listDocs(id))ops.push(['delete','documents',d.id],['delete','blobs',d.blobId]);
   for(const s of['debts','history'])for(const r of await rel(s,id))ops.push(['delete',s,r.id]);
   if(c.photoId)ops.push(['delete','blobs',c.photoId]);ops.push(['delete','clients',id]);await db.batch(ops)}
 export const listDocs=async id=>(await list('documents')).filter(d=>d.clientId===id).sort((a,b)=>b.createdAt-a.createdAt);
