@@ -4,15 +4,20 @@ O SCIPIONE CRED pode enviar e restaurar backups diretamente no Google Drive, sem
 substituir o backup local. A integração é feita no navegador com OAuth 2.0
 (Google Identity Services) e a Drive API v3.
 
-## Por que é necessário um cliente OAuth “Aplicativo da Web”
+## Cliente OAuth configurado
 
-O JSON fornecido para este projeto é de um cliente **instalado** (`installed`).
-O Google bloqueia esse tipo no fluxo de navegador com o erro
-`invalid_client / no registered origin`. Para a integração funcionar no
-localhost e na Vercel, crie um cliente do tipo **Aplicativo da Web**.
+O projeto já vem com um cliente OAuth do tipo **Aplicativo da Web** em
+`src/config/google.js`. A origem de produção autorizada é
+`https://scipione-cred-offline.vercel.app`; nela, basta clicar em
+**Conectar Google Drive**.
 
-O `client_secret` não é usado pelo aplicativo e não deve ser colocado no
-repositório. A interface usa apenas o `client_id` público.
+Para testar em `localhost`, em um domínio próprio ou no GitHub Pages, adicione
+a origem exata em **Origens JavaScript autorizadas** no Google Cloud. Também é
+possível importar o JSON desse cliente em **Backup → Google Drive**.
+
+O JSON inicialmente fornecido era de um cliente **instalado** (`installed`) e
+não é usado no navegador. O `client_secret` não é usado pelo aplicativo e não
+deve ser colocado no repositório; a interface usa apenas o `client_id` público.
 
 ## Configuração no Google Cloud
 
@@ -25,11 +30,12 @@ repositório. A interface usa apenas o `client_id` público.
 4. Em **APIs e serviços → Credenciais**, crie um **ID do cliente OAuth** do tipo
    **Aplicativo da Web**.
 5. Em **Origens JavaScript autorizadas**, adicione todas as origens usadas:
+   - `https://scipione-cred-offline.vercel.app` (já configurada no projeto);
    - `http://localhost` e a porta local, por exemplo `http://localhost:8120`;
-   - `https://SEU-PROJETO.vercel.app`;
    - o domínio do GitHub Pages, se for usado.
-6. Baixe o JSON do cliente Web e importe-o em **Backup → Google Drive →
-   Selecionar JSON do Google Cloud**.
+6. Baixe o JSON do cliente Web. Se for o mesmo cliente já configurado, não é
+   necessário importar. Para outro cliente ou outra origem, importe-o em
+   **Backup → Google Drive → Selecionar JSON do Google Cloud**.
 
 ## Como funciona
 
@@ -58,7 +64,7 @@ repositório. A interface usa apenas o `client_id` público.
 
 | Erro | Causa provável | Correção |
 | --- | --- | --- |
-| `invalid_client` / `no registered origin` | Cliente instalado ou origem não autorizada | Criar cliente Web e adicionar a origem |
+| `invalid_client` / `no registered origin` | Cliente instalado ou origem não autorizada | Usar o cliente Web configurado ou adicionar a origem |
 | `origin_mismatch` | Origem atual fora da lista | Adicionar a origem exata no Google Cloud |
 | `access_denied` | Consentimento cancelado ou usuário fora dos testes | Autorizar novamente / incluir usuário de teste |
 | Drive API desativada | API não habilitada no projeto | Ativar a Google Drive API |

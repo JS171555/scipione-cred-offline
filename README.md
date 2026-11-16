@@ -273,9 +273,10 @@ O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos
 - O Google Drive é um segundo destino, não substitui o backup local. A conta é
   autorizada no navegador e o token fica apenas na memória da aba.
 
-> Para o Google Drive, use um cliente OAuth do tipo **Aplicativo da Web**. O JSON
-> instalado fornecido inicialmente é recusado pelo Google no navegador. O passo a
-> passo e os erros comuns estão em [docs/google-drive.md](docs/google-drive.md).
+> O Google Drive já usa um cliente OAuth **Aplicativo da Web** configurado para
+> `https://scipione-cred-offline.vercel.app`. Para testar em localhost ou em outro
+> domínio, autorize a origem no Google Cloud ou importe o JSON do cliente Web. O
+> passo a passo e os erros comuns estão em [docs/google-drive.md](docs/google-drive.md).
 
 > Cada origem tem um cofre próprio. `localhost`, o domínio da Vercel e o endereço do GitHub Pages são cofres separados. Para migrar dados entre ambientes, gere um backup e restaure no novo endereço.
 

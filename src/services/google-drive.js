@@ -15,10 +15,10 @@ let gisPromise=null,token=null,tokenExpires=0,pending=null,folderId=null;
 
 const now=()=>Date.now();
 const fail=(message,code)=>Object.assign(new Error(message),{code});
-const saved=()=>{try{const value=JSON.parse(localStorage.getItem(STORE)||'null');return value&&value.clientId?value:null}catch{return null}};
+const saved=()=>{try{const value=JSON.parse(localStorage.getItem(STORE)||'null');if(!value||!value.clientId)return null;if(value.type!=='web'){localStorage.removeItem(STORE);return null}return value}catch{return null}};
 const resetAuth=()=>{token=null;tokenExpires=0;pending=null;folderId=null};
 
-export function getConfig(){return saved()||{...GOOGLE_OAUTH,origins:[]}}
+export function getConfig(){return saved()||{...GOOGLE_OAUTH,origins:Array.isArray(GOOGLE_OAUTH.origins)?GOOGLE_OAUTH.origins:[]}}
 export function configState(){
   const c=getConfig(),origins=Array.isArray(c.origins)?c.origins:[],origin=location.origin;
   const originListed=origins.some(x=>{try{return new URL(x).origin===origin}catch{return x===origin}});
