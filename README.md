@@ -32,7 +32,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 
 <p align="center">
   <img src="docs/screenshots/login-desktop.webp" alt="Tela de login do SCIPIONE CRED" width="920"><br>
-  <sub>Login com duas cenas do escritório que se alternam automaticamente.</sub>
+  <sub>Login com as duas cenas do escritório, sempre inteiras, alternando automaticamente.</sub>
 </p>
 
 <p align="center">
@@ -125,7 +125,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 - PWA instalável no celular e no desktop.
 - Funciona offline depois do primeiro carregamento.
 - Layout responsivo para celular, tablet e desktop.
-- Duas cenas de login que se alternam automaticamente com crossfade suave.
+- Duas cenas de login exibidas por inteiro, sem recorte, alternando com crossfade suave.
 - Navegação por teclado, foco visível, alvos de toque e respeito a `prefers-reduced-motion`.
 - Barras de rolagem ocultas, mantendo a rolagem por toque, roda e teclado.
 - Áreas de upload pontilhadas, com ícone central e texto simples.
