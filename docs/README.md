@@ -28,7 +28,7 @@ Camada exclusivamente visual, sem alteração de regras de negócio, banco ou fl
 - **Rolagem:** barras de rolagem ocultas em todos os tamanhos de tela; rolagem preservada por toque, roda e teclado.
 - **Feedback:** transições suaves entre telas, spinners nas ações assíncronas e estado de carregamento acessível (`aria-busy`).
 - **Uploads:** áreas pontilhadas com ícone central e texto simples, adaptadas a celular, tablet e desktop.
-- **Login:** composição de altura fixa, sem rolagem, com as duas cenas do escritório em crossfade (ciclo de 18 s). No celular a cena ocupa o fundo e o formulário fica em um cartão central; a partir de 760 px, o painel é dividido. Telas baixas usam escala compacta, preservando campos, aviso de segurança e ação principal. Com `prefers-reduced-motion`, a primeira cena fica estática.
+- **Login:** duas cenas do escritório alternam automaticamente em crossfade (ciclo de 18 s), como banner no celular e painel lateral dividido a partir de 760 px, com sobreposição escura e degradê de transição para o painel. Com `prefers-reduced-motion`, a primeira cena fica estática.
 - **Marca:** imagem original do chapéu inteira e sem recorte, com a moldura dourada original, usada na navegação, no login e nos ícones do aplicativo (192, 512, maskable e apple-touch), sem contorno adicional, sombra ou cantos arredondados.
 - **Estética:** sem bordas, linhas divisórias ou separadores; hierarquia por espaçamento, superfícies e contraste; botões e campos sem contorno em repouso.
 - **Acessibilidade:** link "Ir para o conteúdo", foco visível (halo suave em campos e anel em botões), alvos de toque >= 44 px, `aria-current` na navegação, rótulos associados, `role="alert"`/`status` nas mensagens e `prefers-reduced-motion` respeitado.
