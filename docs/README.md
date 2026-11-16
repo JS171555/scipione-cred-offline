@@ -23,7 +23,7 @@ Camada exclusivamente visual, sem alteração de regras de negócio, banco ou fl
 - **Componentes compartilhados:** `src/ui/kit.js` (iniciais, datas, plural, seletor de arquivo em pt-BR) e `src/ui/icons.js` (ícones SVG de traço fino, 1,6 px).
 - **Navegação:** `src/ui/shell.js` monta barra inferior até 719 px, rail de 96 px de 720 a 1099 px e menu lateral a partir de 1100 px. Título, ações de bloqueio/saída e navegação usam os mesmos componentes nas três faixas. No celular, Configurações aparece como ícone no topo, ao lado do bloqueio; no tablet e no desktop, como item no rodapé do menu.
 - **Configurações:** `src/ui/settings.js` reúne Sistema, Segurança, Instalação e Vencimentos, com os mesmos handlers de bloqueio automático, teste de integridade, instalação e janela de vencimento.
-- **Perfil do cliente:** dados, dívidas, documentos e histórico, nessa ordem; o card de documentos fica abaixo do card de dívidas.
+- **Perfil do cliente:** dados, dívidas, documentos e histórico, nessa ordem; o card de documentos fica abaixo do card de dívidas. A edição fica no ícone superior direito do card, a troca de foto no botão circular sobre o avatar e a exclusão dentro de “Editar perfil”, após “Cancelar”.
 - **Responsivo:** conteúdo em coluna única no celular; métricas em uma coluna no celular e três colunas a partir de 720 px; listas em 2 colunas e cartões lado a lado a partir de 1000 px; formulários em 2 colunas a partir de 720 px.
 - **Rolagem:** barras de rolagem ocultas em todos os tamanhos de tela; rolagem preservada por toque, roda e teclado.
 - **Feedback:** transições suaves entre telas, spinners nas ações assíncronas e estado de carregamento acessível (`aria-busy`).

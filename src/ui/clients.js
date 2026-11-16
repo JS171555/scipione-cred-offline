@@ -45,7 +45,7 @@ const fname=d=>EXT[d.type]?d.name.replace(/\.[a-z0-9]{2,5}$/i,'')+EXT[d.type]:d.
 function viewImg(u,name){const d=h('dialog',{class:'viewer'},h('img',{src:u,alt:name}),h('button',{class:'ghost',onclick:()=>d.close()},icon('close',18),'Fechar'));d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal()}
 async function profile(id){
   const c=await S.getClient(id);if(!c)return list();
-  const[docs,hist,cnt]=await Promise.all([S.listDocs(id),S.listHistory(id),S.counts(id)]);
+  const[docs,hist]=await Promise.all([S.listDocs(id),S.listHistory(id)]);
   const dsec=await D.section(U,c,()=>profile(id));
   const err=h('p',{class:'error',role:'alert'}),run=fn=>async(...a)=>{err.textContent='';try{await fn(...a);profile(id)}catch(x){err.textContent=x.message}};
   const av=h('div',{class:'avatar avatar--lg'},h('span',{class:'muted'},initials(c.name)));
@@ -60,18 +60,14 @@ async function profile(id){
     err,
     h('section',{class:'card profile-card'},
       rep,
-      h('button',{class:'profile-edit-mobile',type:'button','aria-label':'Editar perfil',onclick:()=>form(c)},icon('edit',24)),
+      h('button',{class:'profile-edit-action',type:'button','aria-label':'Editar perfil',onclick:()=>form(c)},icon('edit',24)),
       h('div',{class:'profile-head'},
         h('div',{class:'profile-photo'},av,
-          h('button',{class:'profile-photo-mobile',type:'button','aria-label':c.photoId?'Substituir fotografia':'Adicionar fotografia',onclick:()=>rep.click()},icon(c.photoId?'refresh':'camera',18))),
+          h('button',{class:'profile-photo-action',type:'button','aria-label':c.photoId?'Substituir fotografia':'Adicionar fotografia',onclick:()=>rep.click()},icon(c.photoId?'refresh':'camera',18))),
         h('div',{class:'who'},
           h('span',{class:'badge badge--type'},pj?'Pessoa jurídica':'Pessoa física'),
           h('p',{},`${pj?'CNPJ':'CPF'} ${c.doc}`))),
-      h('dl',{class:'meta'},row('Telefone',c.phone),row('Celular',c.mobile),row('E-mail',c.email),...(pj?[]:[row('RG',c.rg)]),row('Endereço',c.address,true)),
-      h('div',{class:'actions profile-actions'},h('button',{class:'primary',onclick:()=>form(c)},h('span',{class:'profile-action-label'},'Editar perfil')),
-        h('button',{onclick:()=>rep.click()},h('span',{class:'profile-action-label'},c.photoId?'Substituir fotografia':'Adicionar fotografia')),
-        c.photoId&&h('button',{class:'ghost',onclick:run(()=>S.changePhoto(c,{remove:true}))},h('span',{class:'profile-action-label'},'Remover fotografia')),
-        h('button',{class:'danger',onclick:async()=>{if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;try{await S.deleteClient(id);list()}catch(x){err.textContent=x.message}}},h('span',{class:'profile-action-label'},'Excluir cliente')))),
+      h('dl',{class:'meta'},row('Telefone',c.phone),row('Celular',c.mobile),row('E-mail',c.email),...(pj?[]:[row('RG',c.rg)]),row('Endereço',c.address,true))),
     dsec,
     h('section',{class:'card'},h('h2',{},'Documentos'),
       h('div',{class:'form-grid'},
