@@ -85,7 +85,9 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 - Dados de contato, endereço, foto e documentos anexos.
 - Foto do cliente com recorte automático; iniciais são usadas quando não há imagem.
 - Busca, ordenação e filtros por taxa de juros.
+- Lista paginada com 20 clientes por página, preservando busca, filtros e ordenação.
 - Perfil com dados, dívidas, documentos e histórico, nessa ordem.
+- Histórico paginado com as 5 atividades mais recentes por página.
 - Ajuste de juros em lote a partir da lista de clientes.
 
 ### Dívidas
@@ -93,6 +95,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 - Valor principal, taxa mensal, data de registro, vencimento e observações.
 - Cálculo de juros simples em centavos, com aritmética inteira (`BigInt`).
 - Indicadores de dívidas vencidas e prestes a vencer.
+- Lista paginada com 10 dívidas por página, preservando filtros e ordenação.
 - Ajuste de taxa em lote com pré-visualização antes de aplicar.
 - Janela de vencimento configurável na tela de Configurações.
 

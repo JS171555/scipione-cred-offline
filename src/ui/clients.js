@@ -1,4 +1,4 @@
-import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,filePicker}from './kit.js';
+import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,filePicker,pager}from './kit.js';
 let X;const h=(...a)=>X.h(...a),urls=[];
 const clean=()=>{unwatch();urls.splice(0).forEach(u=>URL.revokeObjectURL(u));document.querySelectorAll('dialog.viewer').forEach(d=>d.close())};
 const render=(...n)=>{clean();X.show(...n)};A.onLock(clean);
@@ -56,6 +56,19 @@ async function profile(id){
   const open=async d=>{err.textContent='';const pdf=d.type==='application/pdf',w=pdf?window.open('about:blank','_blank'):null;
     try{const b=await S.docBytes(d);if(pdf){if(!w)throw new Error('Permita pop-ups para abrir o PDF ou use Baixar.');const u=URL.createObjectURL(new Blob([b],{type:d.type}));w.location.href=u;setTimeout(()=>URL.revokeObjectURL(u),12e4)}else viewImg(url(b,d.type),d.name)}catch(x){w?.close();err.textContent=x.message}};
   const dl=async d=>{try{const u=URL.createObjectURL(new Blob([await S.docBytes(d)],{type:d.type})),a=h('a',{href:u,download:fname(d)});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),6e4)}catch(x){err.textContent=x.message}};
+  const histPage={page:1},histOut=h('div'),PER=5;
+  const paintHistory=()=>{
+    const pages=Math.max(1,Math.ceil(hist.length/PER));histPage.page=Math.min(Math.max(1,histPage.page),pages);
+    const start=(histPage.page-1)*PER,visible=hist.slice(start,start+PER);
+    if(hist.length){
+      const listEl=h('ul',{class:'events'},visible.map(e=>h('li',{class:'event'},h('span',{class:'ev-ico'},icon('clock',16)),
+        h('div',{class:'ev-body'},h('strong',{},e.type),e.detail&&h('p',{},e.detail),h('time',{},when(e.createdAt))))));
+      const pgEl=pager(h,{page:histPage.page,pages,total:hist.length,from:start+1,to:start+visible.length,singular:'atividade',plural:'atividades',label:'Paginação do histórico',onPage:n=>{histPage.page=n;paintHistory()}});
+      histOut.replaceChildren(listEl,pgEl);
+    }
+    else histOut.replaceChildren(h('p',{class:'empty'},icon('clock',26),'Nenhuma atividade registrada.'));
+  };
+  paintHistory();
   render(top('client',c.name,list),
     err,
     h('section',{class:'card profile-card'},
@@ -82,7 +95,5 @@ async function profile(id){
         h('div',{class:'actions'},(d.type==='application/pdf'||d.type.startsWith('image/'))&&h('button',{class:'ghost',onclick:()=>open(d)},'Abrir'),
           h('button',{class:'ghost',onclick:()=>dl(d)},'Baixar'),
           h('button',{class:'ghost',onclick:run(()=>confirm(`Remover “${d.name}”?`)&&S.removeDoc(d))},'Remover'))))):h('p',{class:'empty'},icon('file',26),'Nenhum documento anexado.')),
-    h('section',{class:'card'},h('h2',{},'Histórico'),
-      hist.length?h('ul',{class:'events'},hist.map(e=>h('li',{class:'event'},h('span',{class:'ev-ico'},icon('clock',16)),
-        h('div',{class:'ev-body'},h('strong',{},e.type),e.detail&&h('p',{},e.detail),h('time',{},when(e.createdAt)))))):h('p',{class:'empty'},icon('clock',26),'Nenhuma atividade registrada.')));
+    h('section',{class:'card'},h('h2',{},'Histórico'),histOut));
 }
