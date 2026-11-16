@@ -66,6 +66,7 @@ async function profile(id){
         h('button',{onclick:()=>rep.click()},c.photoId?'Substituir fotografia':'Adicionar fotografia'),
         c.photoId&&h('button',{class:'ghost',onclick:run(()=>S.changePhoto(c,{remove:true}))},'Remover fotografia'),
         h('button',{class:'danger',onclick:async()=>{if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;try{await S.deleteClient(id);list()}catch(x){err.textContent=x.message}}},'Excluir cliente'))),
+    dsec,
     h('section',{class:'card'},h('h2',{},'Documentos'),
       h('div',{class:'form-grid'},
         h('div',{class:'field'},h('label',{for:'cat'},'Categoria'),cat),
@@ -79,7 +80,6 @@ async function profile(id){
         h('div',{class:'actions'},(d.type==='application/pdf'||d.type.startsWith('image/'))&&h('button',{class:'ghost',onclick:()=>open(d)},'Abrir'),
           h('button',{class:'ghost',onclick:()=>dl(d)},'Baixar'),
           h('button',{class:'ghost',onclick:run(()=>confirm(`Remover “${d.name}”?`)&&S.removeDoc(d))},'Remover'))))):h('p',{class:'empty'},icon('file',26),'Nenhum documento anexado.')),
-    dsec,
     h('section',{class:'card'},h('h2',{},'Histórico'),
       hist.length?h('ul',{class:'events'},hist.map(e=>h('li',{class:'event'},h('span',{class:'ev-ico'},icon('clock',16)),
         h('div',{class:'ev-body'},h('strong',{},e.type),e.detail&&h('p',{},e.detail),h('time',{},when(e.createdAt)))))):h('p',{class:'empty'},icon('clock',26),'Nenhuma atividade registrada.')));
