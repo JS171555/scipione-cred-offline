@@ -64,45 +64,43 @@ deve ser colocado no repositório; a interface usa apenas o `client_id` público
 
 Se o Google mostrar **“Acesso bloqueado”** e informar que o app está em teste,
 significa que a conta usada no popup não está na lista de testadores do projeto
-OAuth. Isso não é um erro do SCIPIONE CRED.
+que possui o cliente OAuth ativo. Isso não é um erro do SCIPIONE CRED.
 
-1. Abra a tela de consentimento do projeto
-   `oval-turbine-457821-h3`:
-   [Google Auth Platform → Audience](https://console.cloud.google.com/auth/audience?project=oval-turbine-457821-h3)
-   ou
-   [Tela de consentimento OAuth](https://console.cloud.google.com/apis/credentials/consent?project=oval-turbine-457821-h3).
-2. Em **Usuários de teste** / **Test users**, clique em **Adicionar usuários**
-   e inclua exatamente o e-mail usado no popup, por exemplo
-   `js1715557@gmail.com`.
-3. Salve e aguarde alguns minutos. Abra o app em uma janela anônima e clique em
-   **Conectar Google Drive** novamente, escolhendo essa mesma conta.
+O cliente ativo hoje é:
 
-Alternativamente, publique o app em **Publish app** para sair do modo de teste.
-Para uso pessoal, adicionar o testador é o caminho mais rápido.
+`236359551321-aedlnkvretokom2516a4bq6m562b4shv.apps.googleusercontent.com`
 
-### Checklist completo do 403
+O número **236359551321** é de um projeto Google Cloud diferente do projeto
+antigo `oval-turbine-457821-h3` (número `662732522717`). Testadores cadastrados
+no projeto antigo **não valem** para este cliente. O `projectId` em
+`src/config/google.js` é apenas informativo; quem define o projeto efetivo é o
+`clientId`.
 
-Confirme os cinco pontos abaixo no **mesmo projeto** do cliente OAuth usado pelo
-app (`oval-turbine-457821-h3`):
-
-1. **Projeto:** o seletor no topo do Google Cloud mostra
-   `oval-turbine-457821-h3`, e não outro projeto.
-2. **Cliente:** em **Clientes**, o ID é
-   `662732522717-8b9g4pk169fjgpji19q8chbhvf9bj06v.apps.googleusercontent.com`,
-   do tipo **Aplicativo da Web**.
-3. **Público:** em **Audience**, o tipo é **External** e o status é **Testing**
-   (ou **In production**). Em **Test users**, o e-mail
-   `js1715557@gmail.com` aparece na lista **depois de salvar**.
-4. **Escopo:** em **Data Access**, o escopo
-   `https://www.googleapis.com/auth/drive.file` está adicionado e salvo. O
-   `drive.file` é não sensível, mas ainda precisa estar declarado na tela de
-   consentimento.
-5. **API:** a **Google Drive API** está ativada no projeto.
+1. No Google Cloud, selecione o projeto que contém o cliente
+   `236359551321-...` (o Project ID aparece no seletor do topo).
+2. Abra [Google Auth Platform → Audience](https://console.cloud.google.com/auth/audience)
+   e confirme **External** e o status **Testing**.
+3. Em **Test users**, adicione exatamente o e-mail usado no popup, por exemplo
+   `js1715557@gmail.com`, e clique em **Save**.
+4. Em **Data Access**, confirme o escopo
+   `https://www.googleapis.com/auth/drive.file`.
+5. Confirme que a **Google Drive API** está ativada nesse mesmo projeto.
 
 No app, clique em **Backup → Google Drive → Trocar configuração** para remover
 qualquer JSON antigo salvo neste navegador. Recarregue a página e conectar
-novamente. O popup agora usa **seleção de conta**; escolha exatamente
-`js1715557@gmail.com`, não outra conta conectada no navegador.
+novamente. O popup usa **seleção de conta**; escolha exatamente a conta
+cadastrada como testadora.
+
+### Se os testadores foram cadastrados no projeto antigo
+
+Há duas saídas:
+
+- **Continuar no cliente atual:** cadastre o testador no projeto que possui o
+  cliente `236359551321-...`.
+- **Voltar ao cliente do projeto antigo:** use o cliente
+  `662732522717-8b9g4pk169fjgpji19q8chbhvf9bj06v.apps.googleusercontent.com`
+  (projeto `oval-turbine-457821-h3`), onde os testadores já foram cadastrados.
+  O JSON desse cliente pode ser importado em **Trocar configuração**.
 
 Se o projeto estiver com **User type: Internal**, uma conta Gmail não poderá
 autorizá-lo. Nesse caso, use um projeto com **External** ou publique o app.
