@@ -82,7 +82,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 ### Clientes
 
 - Cadastro de pessoa física e jurídica, com validação e máscara de CPF/CNPJ.
-- Pessoa física com tipo, CPF, nome, data de nascimento e gênero no topo do formulário; para pessoa jurídica, o campo de nome vira **Razão social**. Quando online, o CPF é validado na APICPF e nome, nascimento e gênero são preenchidos se ainda estiverem vazios; o status mostra **Validado** ou **Inválido**. Sem internet, chave ausente ou limite atingido, nada é exibido e o preenchimento segue manual. Para CNPJ não há consulta.
+- Formulário dividido em **Dados pessoais** e **Endereço**, com títulos discretos e espaçamento próprio. Pessoa física tem tipo, CPF, nome, data de nascimento e gênero no topo; para pessoa jurídica, o campo de nome vira **Razão social**. Quando online, o CPF é validado na APICPF e nome, nascimento e gênero são preenchidos se ainda estiverem vazios; o status mostra **Validado** ou **Inválido**. Sem internet, chave ausente ou limite atingido, nada é exibido e o preenchimento segue manual. Para CNPJ não há consulta.
 - Dados de contato, endereço, foto e documentos anexos.
 - Endereço com CEP, rua, número, complemento, bairro, cidade e UF; quando online, o CEP é consultado no ViaCEP e rua, bairro, cidade e UF são preenchidos automaticamente. Sem internet ou sem resposta da API, todos os campos continuam editáveis manualmente.
 - Foto do cliente com recorte automático; iniciais são usadas quando não há imagem.
