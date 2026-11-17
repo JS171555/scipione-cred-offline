@@ -52,7 +52,7 @@ function form(c={}){
         h('div',{class:'field field--full'},
           h('label',{for:'photo'},'Fotografia'),
           h('div',{class:'media-field'},prev,
-            h('div',{class:'media-body'},filePicker(h,h('input',{id:'photo',type:'file',accept:'image/*',onchange:e=>{if(e.target.files[0]){photo={file:e.target.files[0]};paint()}}}),'Escolher foto','camera')),
+            h('div',{class:'media-body'},filePicker(h,h('input',{id:'photo',type:'file',accept:'image/*',onchange:e=>{if(e.target.files[0]){photo={file:e.target.files[0]};paint()}}}),'Escolher foto')),
             h('div',{class:'actions'},h('button',{type:'button',class:'ghost',onclick:()=>{photo={remove:true};f.elements.photo.value='';f.elements.photo.dispatchEvent(new Event('change'));paint()}},'Remover fotografia')))),
         h('div',{class:'field'},h('label',{for:'type'},'Tipo de cliente'),h('select',{id:'type'},h('option',{value:'PF',selected:c.type!=='PJ'},'Pessoa Física'),h('option',{value:'PJ',selected:c.type==='PJ'},'Pessoa Jurídica'))),
         docField,

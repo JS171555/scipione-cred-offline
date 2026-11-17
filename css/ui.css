@@ -170,9 +170,10 @@ input::file-selector-button:hover{background:#302c27}
   align-items:start;justify-content:start;max-width:100%}
 .media-field>.avatar{grid-area:preview;width:var(--photo-size);height:var(--photo-size);border-radius:50%;
   font-size:clamp(1.05rem,4vw,1.35rem)}
-.media-field>.avatar svg.i{width:30%;height:30%}
+.media-field>.avatar svg.i{width:20%;height:20%}
 .media-field .media-body{grid-area:pick;min-width:0;display:grid}
-.media-field .file-pick{width:100%;min-height:var(--photo-size);padding:clamp(12px,1.4vw,20px) clamp(12px,1.6vw,16px);gap:8px}
+.media-field .file-pick{width:100%;min-height:var(--photo-size);padding:clamp(12px,1.4vw,20px) clamp(12px,1.6vw,16px);
+  gap:clamp(6px,1vw,10px);align-content:center}  /* align-content:center evita que as linhas do grid estiquem e afastem o ícone do texto */
 .media-field .file-pick .file-ico svg{width:clamp(26px,20%,38px);height:clamp(26px,20%,38px)}
 .media-field .file-pick .file-name{font-size:.82rem}
 .media-field .actions{grid-area:actions;justify-content:flex-start;margin:2px 0 0}
