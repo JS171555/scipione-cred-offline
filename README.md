@@ -24,15 +24,15 @@
 
 ---
 
-## 📌 Sobre o projeto
+## Sobre o projeto
 
-**SCIPIONE CRED** é um aplicativo web progressivo (PWA) para controle pessoal ou profissional de clientes e dívidas. Os dados são armazenados localmente no navegador com IndexedDB e protegidos por senha por meio da Web Crypto API.
+**SCIPIONE CRED** é um aplicativo web progressivo (PWA) para controle pessoal ou profissional de clientes e dívidas. Os dados são armazenados localmente no navegador com IndexedDB e protegidos por uma senha mestra que desbloqueia uma chave criptográfica. O projeto não possui backend próprio e não envia os dados de clientes ou dívidas para servidores.
 
-O aplicativo funciona offline após o primeiro carregamento, pode ser instalado no celular ou computador e não exige conta remota. Recursos opcionais de internet incluem consulta de CEP, validação de CPF, Google Drive e uma função serverless de validação.
+O aplicativo funciona offline após o primeiro carregamento, pode ser instalado no celular ou computador e não exige conta remota. Recursos opcionais de internet incluem consulta de CEP, validação online de CPF e integração com Google Drive.
 
-## ✨ Funcionalidades
+## Funcionalidades
 
-### 👥 Clientes
+### Clientes
 
 - Cadastro de pessoas físicas e jurídicas com máscara e validação de CPF/CNPJ.
 - Dados pessoais, endereço, contato, foto e documentos anexos.
@@ -42,7 +42,7 @@ O aplicativo funciona offline após o primeiro carregamento, pode ser instalado 
 - Perfil do cliente com dados, dívidas, documentos e histórico.
 - Consulta de CEP com o ViaCEP quando há conexão.
 
-### 💰 Dívidas
+### Dívidas
 
 - Valor principal, taxa mensal, data de registro, vencimento e observações.
 - Cálculo de juros simples em centavos com aritmética inteira (`BigInt`).
@@ -51,14 +51,14 @@ O aplicativo funciona offline após o primeiro carregamento, pode ser instalado 
 - Ajuste de taxas em lote com pré-visualização.
 - Janela de vencimentos configurável.
 
-### 📊 Painel e relatórios
+### Painel e relatórios
 
 - Saldo total, juros mensais, quantidade de clientes e vencimentos.
 - Últimos clientes e atividades recentes.
 - Relatórios mensais ou diários em A4, com impressão em retrato ou paisagem.
 - Exportação para Excel `.xlsx` sem biblioteca externa de planilhas.
 
-### 🔐 Segurança e backup
+### Segurança e backup
 
 - Senha protegida por PBKDF2-SHA256 com 600.000 iterações.
 - Dados cifrados com AES-GCM de 256 bits e chave separada para os registros.
@@ -67,14 +67,14 @@ O aplicativo funciona offline após o primeiro carregamento, pode ser instalado 
 - Restauração com modo mesclar ou substituir tudo.
 - Integração opcional com Google Drive usando OAuth no navegador e escopo `drive.file`.
 
-### 🎨 Interface
+### Interface
 
 - PWA instalável e layout responsivo para celular, tablet e desktop.
 - Navegação por teclado, foco visível e respeito a `prefers-reduced-motion`.
 - Interface em português brasileiro com identidade visual escura e dourada.
 - Modo standalone no celular e no desktop.
 
-## 🧰 Tecnologias
+## Tecnologias
 
 | Área | Tecnologia |
 | --- | --- |
@@ -87,7 +87,7 @@ O aplicativo funciona offline após o primeiro carregamento, pode ser instalado 
 | Testes | Node.js, sem dependências externas |
 | Build | Nenhuma; o projeto é servido como site estático |
 
-## 📋 Requisitos
+## Requisitos
 
 - Navegador moderno com suporte a ES Modules, Web Crypto API, IndexedDB e Service Worker.
 - Python 3 ou outro servidor HTTP estático.
@@ -95,7 +95,7 @@ O aplicativo funciona offline após o primeiro carregamento, pode ser instalado 
 
 > Service Workers e Web Crypto exigem contexto seguro. Utilize `localhost` ou HTTPS. Abrir `index.html` diretamente pelo sistema de arquivos não é suficiente.
 
-## 🚀 Instalação e execução
+## Instala��ão e execução
 
 ### Ambiente local
 
@@ -121,7 +121,7 @@ O projeto não possui instalação npm nem etapa de build.
 | Android | Abrir o menu do navegador e selecionar **Instalar aplicativo** |
 | iPhone / iPad | Safari → Compartilhar → **Adicionar à Tela de Início** |
 
-## ⚙️ Configuração opcional
+## Configuração opcional
 
 ### Validação de CPF na Vercel
 
@@ -147,7 +147,7 @@ A configuração detalhada está em [docs/google-drive.md](docs/google-drive.md)
 
 É possível usar um cliente OAuth publicado no projeto ou importar o JSON de um cliente Web próprio em **Backup → Google Drive → Selecionar JSON do Google Cloud**.
 
-## 🧪 Testes
+## Testes
 
 Os testes são executados diretamente pelo Node.js, sem dependências externas:
 
@@ -159,7 +159,7 @@ done
 
 A suíte cobre aritmética monetária, validadores, composição de endereço, criptografia, persistência, backup/restauração e a função APICPF.
 
-## 📁 Estrutura do projeto
+## Estrutura do projeto
 
 ```text
 .
@@ -188,7 +188,7 @@ A suíte cobre aritmética monetária, validadores, composição de endereço, c
 └── .env.example         # Variável opcional da APICPF
 ```
 
-## 🌐 Deploy
+## Deploy
 
 ### Vercel
 
@@ -214,7 +214,7 @@ A URL esperada segue o padrão:
 https://js171555.github.io/scipione-cred-offline/
 ```
 
-## 🔒 Privacidade e segurança
+## Privacidade e segurança
 
 - Clientes, dívidas, documentos e histórico não são enviados a servidores pelo núcleo do aplicativo.
 - A senha do cofre não é armazenada e não há recuperação de senha.
@@ -225,7 +225,7 @@ https://js171555.github.io/scipione-cred-offline/
 
 > Faça backups regularmente. Perder a senha do cofre torna os dados cifrados indisponíveis.
 
-## 📖 Uso básico
+## Uso básico
 
 1. Abra o aplicativo local ou publicado.
 2. Crie o cofre com uma senha forte.
@@ -235,16 +235,16 @@ https://js171555.github.io/scipione-cred-offline/
 6. Gere relatórios ou exporte os dados para Excel.
 7. Crie backups locais criptografados periodicamente.
 
-## 📚 Documentação
+## Documentação
 
 - [Documentação técnica](docs/README.md)
 - [Configuração e uso do Google Drive](docs/google-drive.md)
 
-## ⚖️ Licença
+## Licença
 
 Este é um projeto pessoal. Nenhuma licença de código aberto está definida no repositório. Entre em contato com o autor antes de reutilizar ou distribuir o código.
 
-## 👤 Autor
+## Autor
 
 Desenvolvido por [JS171555](https://github.com/JS171555).
 
