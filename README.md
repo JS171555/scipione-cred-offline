@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Gestão de clientes e dívidas, offline e criptografada.</strong><br>
-  Um cofre local para organizar crédito, vencimentos, documentos e histórico — sem backend, sem conta e sem enviar dados para servidores.
+  Um cofre local para organizar crédito, vencimentos, documentos e histórico. Os dados ficam no aparelho; apenas o CPF é enviado para validação online quando você usa esse recurso.
 </p>
 
 <p align="center">
@@ -82,6 +82,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 ### Clientes
 
 - Cadastro de pessoa física e jurídica, com validação e máscara de CPF/CNPJ.
+- Pessoa física com tipo, CPF, nome, data de nascimento e gênero no topo do formulário. Quando online, o CPF é validado na APICPF e nome, nascimento e gênero são preenchidos se ainda estiverem vazios; o status mostra **Validado** ou **Inválido**. Sem internet, chave ausente ou limite atingido, nada é exibido e o preenchimento segue manual. Para CNPJ não há consulta.
 - Dados de contato, endereço, foto e documentos anexos.
 - Endereço com CEP, rua, número, complemento, bairro, cidade e UF; quando online, o CEP é consultado no ViaCEP e rua, bairro, cidade e UF são preenchidos automaticamente. Sem internet ou sem resposta da API, todos os campos continuam editáveis manualmente.
 - Foto do cliente com recorte automático; iniciais são usadas quando não há imagem.
@@ -234,7 +235,8 @@ Abra `http://localhost:8080`.
 2. Use o preset **Other**.
 3. Deixe **Build Command** e **Install Command** vazios.
 4. Em **Output Directory**, use `.` (a raiz do repositório).
-5. Faça o deploy.
+5. Em **Environment Variables**, crie `APICPF_API_KEY` com a chave da APICPF para habilitar a validação de CPF.
+6. Faça o deploy.
 
 O `vercel.json` já configura:
 
@@ -242,7 +244,7 @@ O `vercel.json` já configura:
 - `/` e `index.html` sem cache, para evitar uma interface antiga;
 - `X-Content-Type-Options` e `Referrer-Policy` como cabeçalhos de segurança.
 
-Não são necessárias variáveis de ambiente. A Vercel entrega o site por HTTPS, contexto exigido pelo service worker e pelo Web Crypto.
+A variável `APICPF_API_KEY` é opcional: sem ela o aplicativo funciona normalmente e a validação de CPF fica manual. Ela é usada somente pela função serverless `api/cpf.js` e nunca é enviada ao navegador. A Vercel entrega o site por HTTPS, contexto exigido pelo service worker e pelo Web Crypto.
 
 ### GitHub Pages
 
@@ -253,13 +255,13 @@ Não são necessárias variáveis de ambiente. A Vercel entrega o site por HTTPS
 
 A URL fica no formato `https://js171555.github.io/scipione-cred-offline/`.
 
-O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos os caminhos são relativos, então o service worker, o manifesto e os ícones funcionam também nesse subdiretório. A diferença é que o GitHub Pages não permite os cabeçalhos de cache definidos no `vercel.json`.
+O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos os caminhos são relativos, então o service worker, o manifesto e os ícones funcionam também nesse subdiretório. A diferença é que o GitHub Pages não permite os cabeçalhos de cache definidos no `vercel.json` nem executa a função serverless: a validação de CPF fica silenciosamente manual.
 
 ## Segurança e privacidade
 
 - A senha do cofre não é armazenada. Ela deriva uma chave (KEK) via PBKDF2-SHA256 com 600.000 iterações; essa chave protege a DEK, que cifra os registros com AES-GCM 256.
 - Para permitir índices e ordenação, poucos metadados (`id`, `createdAt` e `clientId`) permanecem em claro; o conteúdo dos registros é cifrado.
-- O aplicativo não possui backend, conta remota ou telemetria. Os dados não são enviados a servidores.
+- O cofre não tem conta remota nem telemetria, e clientes, dívidas, documentos e histórico não são enviados a servidores. A exceção é o CPF digitado no cadastro: quando online e com a chave configurada, ele é enviado à APICPF através da função serverless para validação e retorno de nome, nascimento e gênero. A chave fica apenas no servidor; veja `docs/apicpf.md`.
 - **Não há recuperação de senha.** Se a senha do cofre for esquecida, os dados não poderão ser abertos. Use uma senha forte e mantenha backups.
 - A criptografia protege os dados em repouso. Ela não protege contra aparelho comprometido, malware ou acesso ao app desbloqueado.
 - O atraso após tentativas incorretas é local e contornável; a defesa principal é o custo do PBKDF2 e uma senha forte.
@@ -288,10 +290,10 @@ O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos
 Os testes usam apenas Node.js, sem dependências externas:
 
 ```sh
-for t in money validators address crypto stage4 backup; do node tests/$t.test.mjs; done
+for t in money validators address crypto stage4 backup apicpf; do node tests/$t.test.mjs; done
 ```
 
-Eles cobrem aritmética monetária, validadores de CPF/CNPJ, máscara e composição de endereço, criptografia do cofre, persistência e backup/restauração. A interface também é validada com um smoke test de ponta a ponta cobrindo clientes, documentos, dívidas, juros em lote, Excel, backup, bloqueio e desbloqueio.
+Eles cobrem aritmética monetária, validadores de CPF/CNPJ, máscara e composição de endereço, criptografia do cofre, persistência, backup/restauração e a função serverless da APICPF. A interface também é validada com um smoke test de ponta a ponta cobrindo clientes, documentos, dívidas, juros em lote, Excel, backup, bloqueio e desbloqueio.
 
 ## Compatibilidade
 

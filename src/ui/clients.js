@@ -1,9 +1,11 @@
-import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import*as CEP from '../services/viacep.js';import{composeAddress,maskCep,onlyDigits,validCep}from '../domain/address.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,filePicker,pager}from './kit.js';
+import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import*as CEP from '../services/viacep.js';import*as CPF from '../services/apicpf.js';import{composeAddress,maskCep,onlyDigits,validCep}from '../domain/address.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,filePicker,pager}from './kit.js';
 let X;const h=(...a)=>X.h(...a),urls=[];let stopForm=()=>{};
 const clean=()=>{stopForm();stopForm=()=>{};unwatch();urls.splice(0).forEach(u=>URL.revokeObjectURL(u));document.querySelectorAll('dialog.viewer').forEach(d=>d.close())};
 const render=(...n)=>{clean();X.show(...n)};A.onLock(clean);
 const url=(b,t)=>{const u=URL.createObjectURL(new Blob([b],{type:t}));urls.push(u);return u};
 const kb=n=>n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+const fmtDate=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||'');return m?`${m[3]}/${m[2]}/${m[1]}`:''};
+const GENDER={M:'Masculino',F:'Feminino',I:'Outro'};
 const top=(page,t,back,...a)=>h('header',{class:'top','data-page':page},
   h('div',{class:'head'},h('button',{type:'button',class:'iconbtn back','aria-label':'Voltar',onclick:back},icon('back',20)),h('h1',{},t)),
   a.length?h('div',{class:'actions'},...a):null);
@@ -14,12 +16,23 @@ export const openProfile=(ctx,id)=>{X=ctx;profile(id)};
 function list(q){return CL.clientList(U,{home:X.home,open:profile,newClient:()=>form(),bulk:()=>D.bulk(U,list)},typeof q==='string'?q:'')}
 function form(c={}){
   let photo,previewUrl=null,previewSeq=0;const err=h('p',{class:'error',role:'alert'}),fe={},prev=h('div',{class:'avatar avatar--lg'},icon('camera',26));
-  let lookupTimer=0,lookupSeq=0,lookupController=null,noteTimer=0;
+  let lookupTimer=0,lookupSeq=0,lookupController=null,noteTimer=0,cpfTimer=0,cpfSeq=0,cpfController=null;
   const note=h('p',{class:'field-note',role:'status','aria-live':'polite'});
   const setNote=(text,warn=false)=>{clearTimeout(noteTimer);note.textContent=text;note.classList.toggle('is-warn',!!warn);
     if(text&&!warn)noteTimer=setTimeout(()=>{if(note.isConnected)note.textContent=''},4000)};
-  const dispose=()=>{clearTimeout(lookupTimer);clearTimeout(noteTimer);lookupSeq++;lookupController?.abort();lookupController=null};
+  const docStatus=h('p',{class:'cpf-status',role:'status','aria-live':'polite'});
+  const setDocStatus=(text,kind='')=>{docStatus.textContent=text;docStatus.className='cpf-status'+(kind?' is-'+kind:'')};
+  const clearCpf=()=>{clearTimeout(cpfTimer);cpfSeq++;cpfController?.abort();cpfController=null;setDocStatus('')};
+  const dispose=()=>{clearTimeout(lookupTimer);clearTimeout(noteTimer);lookupSeq++;lookupController?.abort();lookupController=null;clearCpf()};
   const fld=(id,label,type='text',ac,full=false,span2=false)=>{const e=h('small',{class:'error'});fe[id]=e;return h('div',{class:'field'+(full?' field--full':'')+(span2?' field--span2':''),id:'f-'+id},h('label',{for:id},label),h('input',{id,type,autocomplete:ac,value:c[id]||''}),e)};
+  const docField=fld('doc','CPF','text','off');
+  docField.insertBefore(docStatus,docField.querySelector('small.error'));
+  const genderField=h('div',{class:'field',id:'f-gender'},h('label',{for:'gender'},'Gênero'),
+    h('select',{id:'gender'},
+      h('option',{value:'',selected:!c.gender},'Não informar'),
+      h('option',{value:'F',selected:c.gender==='F'},'Feminino'),
+      h('option',{value:'M',selected:c.gender==='M'},'Masculino'),
+      h('option',{value:'I',selected:c.gender==='I'},'Outro')));
   const paint=async()=>{const seq=++previewSeq;let u=null;
     if(photo?.file){u=URL.createObjectURL(photo.file);urls.push(u)}
     else if(!photo?.remove&&c.photoId){try{u=url(await S.blobBytes(c.photoId),c.photoType)}catch{return}}
@@ -30,7 +43,7 @@ function form(c={}){
   const btn=h('button',{class:'primary',type:'submit'},c.id?'Salvar alterações':'Cadastrar cliente');
   const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');btn.disabled=true;
     const g=k=>f.elements[k].value.trim(),t=g('type'),a=composeAddress({street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),state:g('state')});
-    try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),cep:g('cep'),state:g('state'),street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),address:a},c.id?c:null,photo))}
+    try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),birth:t==='PF'?g('birth'):'',gender:t==='PF'?g('gender'):'',rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),cep:g('cep'),state:g('state'),street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),address:a},c.id?c:null,photo))}
     catch(x){for(const[k,m]of Object.entries(x.errs||{}))fe[k].textContent=m;err.textContent=x.message}finally{btn.disabled=false}}},
     h('h2',{},'Dados do cliente'),
     h('div',{class:'form-grid'},
@@ -38,9 +51,11 @@ function form(c={}){
         h('div',{class:'media-field'},prev,h('div',{class:'media-body'},
           filePicker(h,h('input',{id:'photo',type:'file',accept:'image/*',onchange:e=>{if(e.target.files[0]){photo={file:e.target.files[0]};paint()}}}),'Escolher foto','camera'),
           h('div',{class:'actions'},h('button',{type:'button',class:'ghost',onclick:()=>{photo={remove:true};f.elements.photo.value='';f.elements.photo.dispatchEvent(new Event('change'));paint()}},'Remover fotografia'))))),
-      fld('name','Nome completo','text','name',true),
       h('div',{class:'field'},h('label',{for:'type'},'Tipo de cliente'),h('select',{id:'type'},h('option',{value:'PF',selected:c.type!=='PJ'},'Pessoa Física'),h('option',{value:'PJ',selected:c.type==='PJ'},'Pessoa Jurídica'))),
-      fld('doc','CPF'),fld('rg','RG'),fld('phone','Telefone','tel','tel'),fld('mobile','Celular','tel','tel'),fld('email','E-mail','email','email'),
+      docField,
+      fld('name','Nome completo','text','name',true),
+      fld('birth','Data de nascimento','date','bday'),genderField,
+      fld('rg','RG'),fld('phone','Telefone','tel','tel'),fld('mobile','Celular','tel','tel'),fld('email','E-mail','email','email'),
       h('div',{class:'address-grid'},
         fld('cep','CEP','text','postal-code'),fld('street','Rua','text','address-line1',false,true),
         fld('number','Número','text','address-line2'),fld('complement','Complemento','text','address-line3'),
@@ -48,8 +63,33 @@ function form(c={}){
         fld('state','Estado (UF)','text','address-level1'),note)),
     err,
     h('div',{class:'form-actions'},btn,h('button',{type:'button',onclick:()=>c.id?profile(c.id):list()},'Cancelar'),c.id&&h('button',{type:'button',class:'danger form-delete',onclick:removeClient},'Excluir cliente')));
-  const kind=()=>f.elements.type.value==='PJ'?'cnpj':'cpf',sync=()=>{const pj=kind()==='cnpj';f.querySelector('label[for=doc]').textContent=pj?'CNPJ':'CPF';f.querySelector('#f-rg').hidden=pj;f.elements.doc.value=V.mask[kind()](f.elements.doc.value)};
-  f.elements.type.onchange=sync;f.elements.doc.addEventListener('input',e=>e.target.value=V.mask[kind()](e.target.value));
+  const kind=()=>f.elements.type.value==='PJ'?'cnpj':'cpf',sync=()=>{const pj=kind()==='cnpj';f.querySelector('label[for=doc]').textContent=pj?'CNPJ':'CPF';f.querySelector('#f-rg').hidden=pj;f.querySelector('#f-birth').hidden=pj;f.querySelector('#f-gender').hidden=pj;f.elements.doc.value=V.mask[kind()](f.elements.doc.value);if(pj)clearCpf()};
+  const scheduleCpf=()=>{
+    clearTimeout(cpfTimer);cpfSeq++;cpfController?.abort();cpfController=null;
+    if(f.elements.type.value==='PJ'){setDocStatus('');return}
+    const d=onlyDigits(f.elements.doc.value);
+    if(d.length<11){setDocStatus('');return}
+    if(!V.validCPF(d)){setDocStatus('Inválido','invalid');return}
+    if(!navigator.onLine){setDocStatus('');return}
+    setDocStatus('Validando...','pending');const seq=cpfSeq;
+    cpfTimer=setTimeout(()=>runCpf(d,seq),700);
+  };
+  const runCpf=async(d,seq)=>{
+    const ctrl=new AbortController();cpfController=ctrl;
+    try{
+      const r=await CPF.lookupCpf(d,{signal:ctrl.signal});
+      if(seq!==cpfSeq||!f.isConnected||f.elements.type.value!=='PF'||onlyDigits(f.elements.doc.value)!==d)return;
+      const put=(k,v)=>{if(v&&!f.elements[k].value.trim())f.elements[k].value=v};
+      put('name',r.name);put('birth',r.birth);put('gender',r.gender);
+      setDocStatus('Validado','valid');
+    }catch(x){
+      if(x?.name==='AbortError'||seq!==cpfSeq||!f.isConnected)return;
+      if(x?.code==='INVALID')setDocStatus('Inválido','invalid');
+      else setDocStatus('');
+    }finally{if(cpfController===ctrl)cpfController=null}
+  };
+  f.elements.type.onchange=()=>{sync();scheduleCpf()};
+  f.elements.doc.addEventListener('input',e=>{e.target.value=V.mask[kind()](e.target.value);scheduleCpf()});
   ['phone','mobile'].forEach(k=>f.elements[k].addEventListener('input',e=>e.target.value=V.mask.phone(e.target.value)));
   f.elements.state.maxLength=2;f.elements.state.autocapitalize='characters';
   f.elements.state.addEventListener('input',()=>{f.elements.state.value=f.elements.state.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,2)});
@@ -122,7 +162,7 @@ async function profile(id){
         h('div',{class:'who'},
           h('span',{class:'badge badge--type'},pj?'Pessoa jurídica':'Pessoa física'),
           h('p',{},`${pj?'CNPJ':'CPF'} ${c.doc}`))),
-      h('dl',{class:'meta'},row('Telefone',c.phone),row('Celular',c.mobile),row('E-mail',c.email),...(pj?[]:[row('RG',c.rg)]),row('Endereço',c.address,true))),
+      h('dl',{class:'meta'},row('Telefone',c.phone),row('Celular',c.mobile),row('E-mail',c.email),...(pj?[]:[row('RG',c.rg),...(c.birth?[row('Data de nascimento',fmtDate(c.birth))]:[]),...(c.gender?[row('Gênero',GENDER[c.gender])]:[])]),row('Endereço',c.address,true))),
     dsec,
     h('section',{class:'card'},h('h2',{},'Documentos'),
       h('div',{class:'form-grid'},

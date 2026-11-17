@@ -138,6 +138,10 @@ input::file-selector-button:hover{background:#302c27}
 .field-note{grid-column:1/-1;margin:-6px 0 0;font-size:.8rem;line-height:1.45;color:var(--muted);min-height:0}
 .field-note:empty{display:none}
 .field-note.is-warn{color:var(--gold-strong)}
+.cpf-status{margin:0;font-size:.8rem;line-height:1.35;color:var(--muted);min-height:0}
+.cpf-status:empty{display:none}
+.cpf-status.is-valid{color:var(--ok)}
+.cpf-status.is-invalid{color:var(--danger)}
 .form-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
 .form-actions button{flex:1 1 160px}
 .form-actions .primary{flex:2 1 220px}
