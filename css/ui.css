@@ -134,6 +134,7 @@ input::file-selector-button:hover{background:#302c27}
 .check input{margin:1px 0 0}
 .form-grid{display:grid;gap:16px;margin:0 0 4px}
 .field--full{grid-column:1/-1}
+.address-grid{grid-column:1/-1;display:grid;gap:16px;min-width:0}
 .field-note{grid-column:1/-1;margin:-6px 0 0;font-size:.8rem;line-height:1.45;color:var(--muted);min-height:0}
 .field-note:empty{display:none}
 .field-note.is-warn{color:var(--gold-strong)}
@@ -503,6 +504,8 @@ body.authing main>*{width:auto;max-width:none}
 .cols .card{margin:0}
 @media(min-width:720px){
   .form-grid{grid-template-columns:1fr 1fr}
+  .address-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .field--span2{grid-column:span 2}
   .meta{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 26px}
   .cols .meta dt{min-height:2.8em}
   .split>.card{margin:0}

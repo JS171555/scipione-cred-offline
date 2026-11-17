@@ -19,7 +19,7 @@ function form(c={}){
   const setNote=(text,warn=false)=>{clearTimeout(noteTimer);note.textContent=text;note.classList.toggle('is-warn',!!warn);
     if(text&&!warn)noteTimer=setTimeout(()=>{if(note.isConnected)note.textContent=''},4000)};
   const dispose=()=>{clearTimeout(lookupTimer);clearTimeout(noteTimer);lookupSeq++;lookupController?.abort();lookupController=null};
-  const fld=(id,label,type='text',ac,full=false)=>{const e=h('small',{class:'error'});fe[id]=e;return h('div',{class:'field'+(full?' field--full':''),id:'f-'+id},h('label',{for:id},label),h('input',{id,type,autocomplete:ac,value:c[id]||''}),e)};
+  const fld=(id,label,type='text',ac,full=false,span2=false)=>{const e=h('small',{class:'error'});fe[id]=e;return h('div',{class:'field'+(full?' field--full':'')+(span2?' field--span2':''),id:'f-'+id},h('label',{for:id},label),h('input',{id,type,autocomplete:ac,value:c[id]||''}),e)};
   const paint=async()=>{const seq=++previewSeq;let u=null;
     if(photo?.file){u=URL.createObjectURL(photo.file);urls.push(u)}
     else if(!photo?.remove&&c.photoId){try{u=url(await S.blobBytes(c.photoId),c.photoType)}catch{return}}
@@ -29,8 +29,8 @@ function form(c={}){
   const removeClient=async()=>{if(!c.id)return;err.textContent='';try{const cnt=await S.counts(c.id);if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;await S.deleteClient(c.id);list()}catch(x){err.textContent=x.message}};
   const btn=h('button',{class:'primary',type:'submit'},c.id?'Salvar alterações':'Cadastrar cliente');
   const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');btn.disabled=true;
-    const g=k=>f.elements[k].value.trim(),t=g('type'),a=composeAddress({street:g('street'),number:g('number'),district:g('district'),city:g('city'),state:g('state')});
-    try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),cep:g('cep'),state:g('state'),street:g('street'),number:g('number'),district:g('district'),city:g('city'),address:a||(c.id?c.address||'':'')},c.id?c:null,photo))}
+    const g=k=>f.elements[k].value.trim(),t=g('type'),a=composeAddress({street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),state:g('state')});
+    try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),cep:g('cep'),state:g('state'),street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),address:a},c.id?c:null,photo))}
     catch(x){for(const[k,m]of Object.entries(x.errs||{}))fe[k].textContent=m;err.textContent=x.message}finally{btn.disabled=false}}},
     h('h2',{},'Dados do cliente'),
     h('div',{class:'form-grid'},
@@ -41,9 +41,11 @@ function form(c={}){
       fld('name','Nome completo','text','name',true),
       h('div',{class:'field'},h('label',{for:'type'},'Tipo de cliente'),h('select',{id:'type'},h('option',{value:'PF',selected:c.type!=='PJ'},'Pessoa Física'),h('option',{value:'PJ',selected:c.type==='PJ'},'Pessoa Jurídica'))),
       fld('doc','CPF'),fld('rg','RG'),fld('phone','Telefone','tel','tel'),fld('mobile','Celular','tel','tel'),fld('email','E-mail','email','email'),
-      fld('cep','CEP','text','postal-code'),fld('street','Rua','text','address-line1'),
-      fld('number','Número','text','address-line2'),fld('district','Bairro','text','address-level3'),
-      fld('city','Cidade','text','address-level2'),fld('state','Estado (UF)','text','address-level1'),note),
+      h('div',{class:'address-grid'},
+        fld('cep','CEP','text','postal-code'),fld('street','Rua','text','address-line1',false,true),
+        fld('number','Número','text','address-line2'),fld('complement','Complemento','text','address-line3'),
+        fld('district','Bairro','text','address-level3'),fld('city','Cidade','text','address-level2',false,true),
+        fld('state','Estado (UF)','text','address-level1'),note)),
     err,
     h('div',{class:'form-actions'},btn,h('button',{type:'button',onclick:()=>c.id?profile(c.id):list()},'Cancelar'),c.id&&h('button',{type:'button',class:'danger form-delete',onclick:removeClient},'Excluir cliente')));
   const kind=()=>f.elements.type.value==='PJ'?'cnpj':'cpf',sync=()=>{const pj=kind()==='cnpj';f.querySelector('label[for=doc]').textContent=pj?'CNPJ':'CPF';f.querySelector('#f-rg').hidden=pj;f.elements.doc.value=V.mask[kind()](f.elements.doc.value)};

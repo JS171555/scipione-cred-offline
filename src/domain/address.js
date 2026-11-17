@@ -4,8 +4,8 @@ export const maskCep=v=>digits(v).slice(0,8).replace(/(\d{5})(\d)/,'$1-$2');
 export const validCep=v=>{const d=digits(v);return d.length===8&&d!=='00000000'};
 const clean=v=>String(v||'').trim();
 export function composeAddress(a={}){
-  const street=clean(a.street),number=clean(a.number),district=clean(a.district),city=clean(a.city),state=clean(a.state).toUpperCase();
-  const line1=street&&number?`${street}, ${number}`:street||number;
+  const street=clean(a.street),number=clean(a.number),complement=clean(a.complement),district=clean(a.district),city=clean(a.city),state=clean(a.state).toUpperCase();
+  const line1=[street&&number?`${street}, ${number}`:street||number,complement].filter(Boolean).join(', ');
   const cityState=city&&state?`${city}/${state}`:city||state;
   const line2=district&&cityState?`${district}, ${cityState}`:district||cityState;
   return [line1,line2].filter(Boolean).join(' - ');
