@@ -70,15 +70,13 @@ O cliente ativo hoje é:
 
 `236359551321-aedlnkvretokom2516a4bq6m562b4shv.apps.googleusercontent.com`
 
-O número **236359551321** é de um projeto Google Cloud diferente do projeto
-antigo `oval-turbine-457821-h3` (número `662732522717`). Testadores cadastrados
-no projeto antigo **não valem** para este cliente. O `projectId` em
-`src/config/google.js` é apenas informativo; quem define o projeto efetivo é o
-`clientId`.
+O cliente atual pertence ao projeto **`optimum-habitat-447421-c4`**
+(número `236359551321`). Ele é diferente do projeto antigo
+`oval-turbine-457821-h3` (número `662732522717`). Testadores cadastrados no
+projeto antigo **não valem** para este cliente.
 
-1. No Google Cloud, selecione o projeto que contém o cliente
-   `236359551321-...` (o Project ID aparece no seletor do topo).
-2. Abra [Google Auth Platform → Audience](https://console.cloud.google.com/auth/audience)
+1. No Google Cloud, selecione o projeto **`optimum-habitat-447421-c4`**.
+2. Abra [Google Auth Platform → Audience](https://console.cloud.google.com/auth/audience?project=optimum-habitat-447421-c4)
    e confirme **External** e o status **Testing**.
 3. Em **Test users**, adicione exatamente o e-mail usado no popup, por exemplo
    `js1715557@gmail.com`, e clique em **Save**.
