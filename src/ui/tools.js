@@ -68,7 +68,10 @@ export function backupView(X){
     driveBody.replaceChildren();
     driveBody.append(h('p',{class:'muted'},'Backup e restauração na nuvem, com verificação de integridade. O backup local acima continua funcionando exatamente como antes.'));
     if(st.clientId!==G.defaultConfig().clientId)
-      driveBody.append(h('p',{class:'error'},'Este navegador está usando um cliente OAuth importado diferente do cliente atual do app. Se você trocou o clientId no projeto, clique em “Trocar configuração” para remover o JSON antigo e usar o cliente atual.'));
+      driveBody.append(
+        h('p',{class:'error'},'Este navegador está usando um cliente OAuth importado diferente do cliente atual do app. Se você trocou o clientId no projeto, remova o JSON antigo para usar o cliente atual.'),
+        h('div',{class:'actions'},h('button',{class:'primary',type:'button',onclick:()=>{G.disconnect();G.clearConfig();clearDrive();dOk.textContent='Cliente OAuth atual do projeto ativado.';renderDrive()}},'Usar cliente atual'))
+      );
 
     if(!st.configured){
       const message=st.type==='installed'
