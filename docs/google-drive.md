@@ -80,6 +80,38 @@ OAuth. Isso não é um erro do SCIPIONE CRED.
 Alternativamente, publique o app em **Publish app** para sair do modo de teste.
 Para uso pessoal, adicionar o testador é o caminho mais rápido.
 
+### Checklist completo do 403
+
+Confirme os cinco pontos abaixo no **mesmo projeto** do cliente OAuth usado pelo
+app (`oval-turbine-457821-h3`):
+
+1. **Projeto:** o seletor no topo do Google Cloud mostra
+   `oval-turbine-457821-h3`, e não outro projeto.
+2. **Cliente:** em **Clientes**, o ID é
+   `662732522717-8b9g4pk169fjgpji19q8chbhvf9bj06v.apps.googleusercontent.com`,
+   do tipo **Aplicativo da Web**.
+3. **Público:** em **Audience**, o tipo é **External** e o status é **Testing**
+   (ou **In production**). Em **Test users**, o e-mail
+   `js1715557@gmail.com` aparece na lista **depois de salvar**.
+4. **Escopo:** em **Data Access**, o escopo
+   `https://www.googleapis.com/auth/drive.file` está adicionado e salvo. O
+   `drive.file` é não sensível, mas ainda precisa estar declarado na tela de
+   consentimento.
+5. **API:** a **Google Drive API** está ativada no projeto.
+
+No app, clique em **Backup → Google Drive → Trocar configuração** para remover
+qualquer JSON antigo salvo neste navegador. Recarregue a página e conectar
+novamente. O popup agora usa **seleção de conta**; escolha exatamente
+`js1715557@gmail.com`, não outra conta conectada no navegador.
+
+Se o projeto estiver com **User type: Internal**, uma conta Gmail não poderá
+autorizá-lo. Nesse caso, use um projeto com **External** ou publique o app.
+
+Ainda com 403 depois disso? Aguarde alguns minutos e teste em uma janela
+anônima. Se o erro continuar, o problema está na configuração do projeto no
+Google Cloud, não no código do SCIPIONE CRED: o Google bloqueia antes de
+qualquer chamada à Drive API.
+
 ## Erros comuns
 
 | Erro | Causa provável | Correção |

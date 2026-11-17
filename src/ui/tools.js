@@ -67,6 +67,8 @@ export function backupView(X){
     if(driveBody.contains(document.activeElement))document.activeElement.blur();
     driveBody.replaceChildren();
     driveBody.append(h('p',{class:'muted'},'Backup e restauração na nuvem, com verificação de integridade. O backup local acima continua funcionando exatamente como antes.'));
+    if(st.clientId!==G.defaultConfig().clientId)
+      driveBody.append(h('p',{class:'error'},'Este navegador está usando um cliente OAuth importado diferente do cliente padrão do projeto. Se os testadores foram configurados no projeto padrão, use “Trocar configuração” para voltar ao cliente do projeto.'));
 
     if(!st.configured){
       const message=st.type==='installed'

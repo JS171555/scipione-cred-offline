@@ -18,7 +18,8 @@ const fail=(message,code)=>Object.assign(new Error(message),{code});
 const saved=()=>{try{const value=JSON.parse(localStorage.getItem(STORE)||'null');if(!value||!value.clientId)return null;if(value.type!=='web'){localStorage.removeItem(STORE);return null}return value}catch{return null}};
 const resetAuth=()=>{token=null;tokenExpires=0;pending=null;folderId=null};
 
-export function getConfig(){return saved()||{...GOOGLE_OAUTH,origins:Array.isArray(GOOGLE_OAUTH.origins)?GOOGLE_OAUTH.origins:[]}}
+export function defaultConfig(){return{...GOOGLE_OAUTH,origins:Array.isArray(GOOGLE_OAUTH.origins)?GOOGLE_OAUTH.origins:[]}}
+export function getConfig(){return saved()||defaultConfig()}
 export function configState(){
   const c=getConfig(),origins=Array.isArray(c.origins)?c.origins:[],origin=location.origin;
   const originListed=origins.some(x=>{try{return new URL(x).origin===origin}catch{return x===origin}});
@@ -94,7 +95,7 @@ export async function connect(){
         },
         error_callback:e=>finish(fail(authMessage(e),'AUTH'))
       });
-      client.requestAccessToken({prompt:''});
+      client.requestAccessToken({prompt:'select_account'});
     }catch(e){finish(e?.message?fail(e.message,'AUTH'):fail(authMessage(e),'AUTH'))}
   });
   return pending;
