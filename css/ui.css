@@ -157,8 +157,10 @@ input::file-selector-button:hover{background:#302c27}
 .inline-form>button{flex:none}
 .window-form{margin-top:18px}
 .subhead{margin:26px 0 8px;font-size:.98rem;color:var(--ivory)}
-/* Campo de fotografia: prévia circular e caixa de upload com a mesma altura e proporção minimamente quadrada.
-   Os tokens --photo-size (altura comum), --photo-ratio (largura da caixa) e --photo-gap reescalçam o bloco em cada faixa de tela. */
+/* Campo de fotografia: a prévia circular usa como diâmetro a própria altura da caixa de upload,
+   então topo e base dos dois elementos sempre coincidem.
+   No celular a caixa é minimamente quadrada (--photo-ratio); em tablet e desktop ela ocupa a largura máxima restante.
+   --photo-size define a altura comum e --photo-gap a folga entre os dois elementos em cada faixa de tela. */
 .media-field{
   --photo-size:clamp(124px,34vw,152px);--photo-ratio:1.2;--photo-gap:clamp(12px,3.2vw,18px);
   --photo-pick-w:calc(var(--photo-size)*var(--photo-ratio));
@@ -176,10 +178,11 @@ input::file-selector-button:hover{background:#302c27}
 .media-field .actions{grid-area:actions;justify-content:flex-start;margin:2px 0 0}
 .media-field .actions .danger{margin-left:0}
 @media(min-width:560px){
-  .media-field{--photo-size:clamp(150px,20vw,176px);--photo-ratio:1.22;--photo-gap:clamp(18px,2.2vw,22px)}}
+  /* tablet e desktop: a caixa de upload estica até a largura máxima; a altura segue o diâmetro da prévia */
+  .media-field{--photo-size:clamp(150px,20vw,176px);--photo-gap:clamp(18px,2.2vw,22px);
+    grid-template-columns:var(--photo-size) minmax(0,1fr)}}
 @media(min-width:1000px){
-  /* o bloco passa a ocupar a largura de uma coluna da grade do formulário: 1,22 : 1 e folga de 22px */
-  .media-field{--photo-size:clamp(184px,15vw,216px);--photo-ratio:1.22;--photo-gap:22px}}
+  .media-field{--photo-size:clamp(184px,15vw,216px);--photo-gap:22px}}
 
 /* ---------- Busca ---------- */
 .search{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;border-radius:999px;background:var(--surface-2);
