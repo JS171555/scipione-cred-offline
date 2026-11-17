@@ -83,7 +83,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 
 - Cadastro de pessoa física e jurídica, com validação e máscara de CPF/CNPJ.
 - Dados de contato, endereço, foto e documentos anexos.
-- Endereço com CEP, rua, bairro, cidade e UF; quando online, o CEP é consultado no ViaCEP e o endereço completo é preenchido automaticamente. Sem internet ou sem resposta da API, todos os campos continuam editáveis manualmente.
+- Endereço com CEP, rua, número, bairro, cidade e UF; quando online, o CEP é consultado no ViaCEP e rua, bairro, cidade e UF são preenchidos automaticamente. Sem internet ou sem resposta da API, todos os campos continuam editáveis manualmente.
 - Foto do cliente com recorte automático; iniciais são usadas quando não há imagem.
 - Busca, ordenação e filtros por taxa de juros.
 - Lista paginada com 20 clientes por página, preservando busca, filtros e ordenação.
