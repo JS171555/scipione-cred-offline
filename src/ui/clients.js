@@ -63,7 +63,7 @@ function form(c={}){
         fld('state','Estado (UF)','text','address-level1'),note)),
     err,
     h('div',{class:'form-actions'},btn,h('button',{type:'button',onclick:()=>c.id?profile(c.id):list()},'Cancelar'),c.id&&h('button',{type:'button',class:'danger form-delete',onclick:removeClient},'Excluir cliente')));
-  const kind=()=>f.elements.type.value==='PJ'?'cnpj':'cpf',sync=()=>{const pj=kind()==='cnpj';f.querySelector('label[for=doc]').textContent=pj?'CNPJ':'CPF';f.querySelector('#f-rg').hidden=pj;f.querySelector('#f-birth').hidden=pj;f.querySelector('#f-gender').hidden=pj;f.elements.doc.value=V.mask[kind()](f.elements.doc.value);if(pj)clearCpf()};
+  const kind=()=>f.elements.type.value==='PJ'?'cnpj':'cpf',sync=()=>{const pj=kind()==='cnpj';f.querySelector('label[for=doc]').textContent=pj?'CNPJ':'CPF';f.querySelector('label[for=name]').textContent=pj?'Razão social':'Nome completo';f.querySelector('#f-rg').hidden=pj;f.querySelector('#f-birth').hidden=pj;f.querySelector('#f-gender').hidden=pj;f.elements.doc.value=V.mask[kind()](f.elements.doc.value);if(pj)clearCpf()};
   const scheduleCpf=()=>{
     clearTimeout(cpfTimer);cpfSeq++;cpfController?.abort();cpfController=null;
     if(f.elements.type.value==='PJ'){setDocStatus('');return}
