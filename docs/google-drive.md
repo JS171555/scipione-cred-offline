@@ -60,6 +60,28 @@ deve ser colocado no repositório; a interface usa apenas o `client_id` público
 - A Vercel envia `Cross-Origin-Opener-Policy: same-origin-allow-popups` para
   manter a janela do Google Identity Services funcional.
 
+## Compatibilidade por dispositivo
+
+| Plataforma | Navegadores recomendados | Cuidados |
+| --- | --- | --- |
+| iPhone / iPad | Safari atualizado (iOS/iPadOS 15 ou superior) | Permitir pop-ups; abrir o app no Safari, não dentro do Instagram, WhatsApp ou outro navegador embutido; manter o app aberto durante envio e restauração. |
+| Android | Chrome ou Edge atualizados | Permitir pop-ups; evitar navegadores embutidos de redes sociais; manter o app em primeiro plano durante o upload. |
+| Windows | Chrome, Edge ou Firefox atualizados | Permitir pop-ups para o domínio; o backup local continua funcionando sem internet. |
+
+O app usa HTTPS, campos de 16 px (para evitar zoom automático no iOS), área
+segura inferior e rolagem com margem para o menu fixo. Em redes lentas, a
+biblioteca do Google tem limite de espera e o botão de conexão informa quando
+está carregando. Se a janela de autorização for bloqueada, a mensagem orienta a
+liberar pop-ups e tentar novamente.
+
+Em navegadores embutidos de aplicativos (Instagram, WhatsApp, Facebook, LinkedIn
+e semelhantes), o Google pode recusar a autenticação. Nesse caso, copie o link
+e abra no Safari, Chrome ou Edge.
+
+No app instalado na tela inicial (PWA), alguns sistemas abrem a autorização em
+uma janela externa. Se a janela não retornar ao app, repita a conexão no
+Safari, Chrome ou Edge; o backup local continua intacto.
+
 ## Erro 403 `access_denied` (app em teste)
 
 Se o Google mostrar **“Acesso bloqueado”** e informar que o app está em teste,

@@ -47,15 +47,25 @@ export function importConfig(text){
 }
 export function clearConfig(){try{localStorage.removeItem(STORE)}catch{}resetAuth()}
 
+export function isReady(){return!!window.google?.accounts?.oauth2}
 function loadGis(){
-  if(window.google?.accounts?.oauth2)return Promise.resolve();
+  if(isReady())return Promise.resolve();
   if(gisPromise)return gisPromise;
   gisPromise=new Promise((resolve,reject)=>{
-    if(!navigator.onLine){reject(fail('Sem conexão com a internet. Conecte-se para autorizar o Google Drive.','OFFLINE'));return}
+    if(!navigator.onLine){gisPromise=null;reject(fail('Sem conexão com a internet. Conecte-se para autorizar o Google Drive.','OFFLINE'));return}
+    let timer=0;
     const s=document.createElement('script');
+    const done=(err)=>{
+      clearTimeout(timer);
+      if(!err){resolve();return}
+      gisPromise=null;
+      s.remove();
+      reject(fail(err,'AUTH'));
+    };
     s.src='https://accounts.google.com/gsi/client';s.async=true;s.defer=true;
-    s.onload=()=>window.google?.accounts?.oauth2?resolve():reject(fail('A biblioteca de autenticação do Google não foi carregada.','AUTH'));
-    s.onerror=()=>{gisPromise=null;reject(fail('Não foi possível carregar a autenticação do Google. Verifique a conexão e tente novamente.','AUTH'))};
+    s.onload=()=>isReady()?done():done('A biblioteca de autenticação do Google não foi carregada.');
+    s.onerror=()=>done('Não foi possível carregar a autenticação do Google. Verifique a conexão e tente novamente.');
+    timer=setTimeout(()=>done('A autenticação do Google demorou demais para carregar. Verifique a conexão e tente novamente.'),20000);
     document.head.append(s);
   });
   return gisPromise;
@@ -64,7 +74,8 @@ export function preload(){return configState().configured?loadGis().catch(()=>{}
 
 function authMessage(e){
   const code=e?.type||e?.error||'auth';
-  if(code==='popup_closed')return 'A autorização do Google não foi concluída. Verifique se o cliente é do tipo Aplicativo da Web, se a origem está autorizada e tente novamente.';
+  if(code==='popup_failed_to_open'||code==='popup_blocked')return 'O navegador bloqueou a janela do Google. Permita pop-ups para este site e toque em “Conectar Google Drive” novamente.';
+  if(code==='popup_closed')return 'A janela do Google foi fechada antes de concluir. Toque em “Conectar Google Drive” e conclua a autorização.';
   if(code==='access_denied')return 'O Google bloqueou o acesso. O app está em teste e esta conta não está nos “Usuários de teste” do projeto do cliente OAuth ativo. Adicione o e-mail em Google Auth Platform → Audience, no projeto correto, e tente novamente. Se você trocou o clientId, use “Trocar configuração” no app para remover um JSON antigo.';
   if(code==='origin_mismatch'||/origin/i.test(code))return 'A origem deste site não está autorizada no cliente OAuth do Google Cloud.';
   if(code==='invalid_client')return 'O cliente OAuth não é válido para uso no navegador. Use um cliente do tipo "Aplicativo da Web".';
@@ -122,7 +133,7 @@ async function request(url,init={},timeout=90000){
   try{
     res=await fetch(url,{...init,headers:{...(init.headers||{}),Authorization:`Bearer ${token}`},signal:controller.signal});
   }catch(e){
-    if(e?.name==='AbortError')throw fail('O Google Drive demorou demais para responder. Tente novamente.','NETWORK');
+    if(e?.name==='AbortError')throw fail('A conexão com o Google Drive demorou demais ou foi interrompida. Mantenha o app aberto e tente novamente.','NETWORK');
     throw fail('Não foi possível conectar ao Google Drive. Verifique sua internet e tente novamente.','NETWORK');
   }finally{clearTimeout(timer)}
   if(res.status===401){resetAuth();throw fail('Sua sessão do Google expirou. Conecte novamente ao Google Drive.','AUTH')}
@@ -162,6 +173,8 @@ export async function listBackups(){
 
 const hex=bytes=>{let out='';for(const b of bytes)out+=b.toString(16).padStart(2,'0');return out};
 export async function sha256(bytes){
+  if(!globalThis.crypto?.subtle?.digest)
+    throw fail('Este navegador não oferece a verificação de integridade necessária. Abra o app por HTTPS em um navegador atualizado.','SECURE');
   return hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));
 }
 
@@ -197,6 +210,8 @@ export async function downloadBackup(file){
     throw fail('Este arquivo não tem a verificação de integridade do SCIPIONE CRED.','INTEGRITY');
   const res=await request(`${API}/files/${encodeURIComponent(file.id)}?alt=media`,{},180000);
   const bytes=new Uint8Array(await res.arrayBuffer());
+  if(file.size!=null&&Number(file.size)!==bytes.byteLength)
+    throw fail('O tamanho do arquivo baixado não confere com o backup no Google Drive.','INTEGRITY');
   if(await sha256(bytes)!==expected)
     throw fail('A verificação de integridade falhou: o arquivo baixado está corrompido ou foi alterado.','INTEGRITY');
   return bytes;

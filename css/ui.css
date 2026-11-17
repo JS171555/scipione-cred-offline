@@ -309,6 +309,10 @@ ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;fo
 }
 /* Google Drive: segundo destino de backup, integrado ao mesmo cartão visual. */
 .drive-card .drive-body>.muted:first-child{margin-top:0}
+.drive-card .drive-body{min-width:0}
+.drive-card .error,.drive-card .info{overflow-wrap:anywhere}
+.drive-card .field,.drive-card .actions,.drive-card .subhead,.drive-card .error,.drive-card .info{
+  scroll-margin-bottom:calc(88px + env(safe-area-inset-bottom))}
 .drive-card .small{font-size:.8rem;line-height:1.55}
 .drive-card .subhead{margin-top:24px}
 .drive-card .drive-body>.subhead:first-of-type{margin-top:20px}
@@ -326,6 +330,9 @@ ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;fo
   .drive-card .section-head h2{font-size:1.25rem}
   .drive-card .subhead{margin-top:22px}
   .drive-card .drive-body>.actions button{flex:1 1 100%}
+}
+@supports (-webkit-touch-callout:none){
+  .drive-card input:not([type=checkbox]),.drive-card select{font-size:16px}
 }
 .doc-ico{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:13px;background:var(--surface-3);color:var(--gold-deep)}
 .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.7rem;font-weight:600;

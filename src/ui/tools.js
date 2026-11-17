@@ -40,7 +40,7 @@ export function backupView(X){
     gen.disabled=true;const z=await B.createBackup(pass),st=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
     save(new Blob([z],{type:'application/zip'}),`scipione-cred-backup-${st}${pass?'-criptografado':''}.zip`);pw.value=pw2.value='';
     ok.textContent=pass?'Backup criptografado gerado. Sem a senha do backup não é possível restaurá-lo.':'Backup gerado, sem criptografia.'}catch(x){err.textContent=x.message}finally{gen.disabled=false}}},'Gerar backup');
-  const file=h('input',{id:'rf',type:'file',accept:'.zip,application/zip'}),rpw=h('input',{id:'rp',type:'password',autocomplete:'off'}),info=h('div');
+  const file=h('input',{id:'rf',type:'file',accept:'.zip,application/zip,application/x-zip-compressed'}),rpw=h('input',{id:'rp',type:'password',autocomplete:'off'}),info=h('div');
   const check=h('button',{onclick:async()=>{clear();parsed=null;info.replaceChildren();check.disabled=true;try{const f=file.files[0];if(!f)throw new Error('Selecione o arquivo de backup.');
     parsed=await B.readBackup(new Uint8Array(await f.arrayBuffer()),rpw.value||undefined);const c=parsed.manifest.counts,mode=h('select',{id:'rm'},h('option',{value:'merge'},'Mesclar com os dados atuais'),h('option',{value:'replace'},'Substituir tudo'));
     const go=h('button',{class:'primary',onclick:async()=>{clear();const rep=mode.value==='replace';
@@ -77,7 +77,7 @@ export function backupView(X){
       const message=st.type==='installed'
         ?'O JSON fornecido é de um cliente OAuth de aplicativo instalado, que o Google não aceita no navegador. Para usar o Drive, crie um cliente do tipo “Aplicativo da Web” no Google Cloud, autorize a origem deste site e importe o JSON dele.'
         :'Importe o JSON de um cliente OAuth do tipo “Aplicativo da Web”. O client_secret não é usado nem armazenado.';
-      const cfg=h('input',{id:'gcfg',type:'file',accept:'.json,application/json'});
+      const cfg=h('input',{id:'gcfg',type:'file',accept:'.json,application/json,text/json'});
       cfg.addEventListener('change',async()=>{
         clearDrive();const f=cfg.files[0];if(!f)return;
         try{const c=await G.importConfig(await f.text());dOk.textContent=`Cliente OAuth configurado${c.projectId?` (${c.projectId})`:''}.`;renderDrive();G.preload()}
@@ -103,6 +103,23 @@ export function backupView(X){
     const actions=h('div',{class:'actions'},connectBtn,
       h('button',{class:'ghost',type:'button',onclick:()=>{if(confirm('Remover a configuração do Google Drive deste navegador? Os backups que já estão no Drive não serão apagados.')){G.disconnect();G.clearConfig();clearDrive();renderDrive()}}},'Trocar configuração'));
     driveBody.append(actions);
+    if(!st.connected&&!G.isReady()){
+      const label=connectBtn.textContent;
+      connectBtn.disabled=true;
+      connectBtn.setAttribute('aria-busy','true');
+      connectBtn.textContent='Preparando Google...';
+      G.preload().then(()=>{
+        if(!connectBtn.isConnected)return;
+        connectBtn.disabled=false;
+        connectBtn.removeAttribute('aria-busy');
+        connectBtn.textContent=label;
+      }).catch(()=>{
+        if(!connectBtn.isConnected)return;
+        connectBtn.disabled=false;
+        connectBtn.removeAttribute('aria-busy');
+        connectBtn.textContent=label;
+      });
+    }
     if(!st.connected){
       driveBody.append(h('p',{class:'muted'},'Conecte sua conta Google para enviar e restaurar backups. O acesso fica limitado aos arquivos criados pelo SCIPIONE CRED.'));
       return;
@@ -111,7 +128,7 @@ export function backupView(X){
     const gEnc=h('input',{id:'ge',type:'checkbox',checked:true}),gPw=h('input',{id:'gp',type:'password',autocomplete:'new-password'}),gPw2=h('input',{id:'gp2',type:'password',autocomplete:'new-password'});
     const gPwField=fld(h,'gp','Senha do backup',gPw),gPw2Field=fld(h,'gp2','Repita a senha do backup',gPw2);
     gEnc.onchange=()=>{gPwField.hidden=gPw2Field.hidden=!gEnc.checked};
-    const gGen=h('button',{class:'primary',onclick:async()=>{
+    const gGen=h('button',{class:'primary',type:'button',onclick:async()=>{
       clearDrive();let pass=null;
       try{
         if(gEnc.checked){if(gPw.value.length<8)throw new Error('A senha do backup deve ter ao menos 8 caracteres.');if(gPw.value!==gPw2.value)throw new Error('As senhas do backup não coincidem.');pass=gPw.value}
@@ -130,7 +147,7 @@ export function backupView(X){
     const gRefresh=h('button',{class:'ghost',type:'button',onclick:()=>loadDrive()},'Atualizar lista');
     const gPass=h('input',{id:'gdp',type:'password',autocomplete:'off'}),gMode=h('select',{id:'gdm'},h('option',{value:'merge'},'Mesclar dados'),h('option',{value:'replace'},'Substituir tudo'));
     const gInfo=h('div');
-    const gCheck=h('button',{class:'primary',onclick:async()=>{
+    const gCheck=h('button',{class:'primary',type:'button',onclick:async()=>{
       clearDrive();gInfo.replaceChildren();driveParsed=null;
       const f=driveFiles.find(x=>x.id===gFile.value);
       if(!f){dErr.textContent='Selecione um backup do Google Drive.';return}
@@ -159,7 +176,7 @@ export function backupView(X){
         gFile.replaceChildren(...driveFiles.map(f=>h('option',{value:f.id,selected:f.id===current},`${f.name} · ${when(f.createdTime)} · ${G.formatSize(f.size)}`)));
         gFile.disabled=false;
       }catch(x){driveFail(x);gFile.replaceChildren(h('option',{value:''},'Não foi possível listar'))}
-      finally{gRefresh.disabled=false}
+      finally{gRefresh.disabled=false;gFile.disabled=false}
     }
 
     driveBody.append(
