@@ -157,11 +157,29 @@ input::file-selector-button:hover{background:#302c27}
 .inline-form>button{flex:none}
 .window-form{margin-top:18px}
 .subhead{margin:26px 0 8px;font-size:.98rem;color:var(--ivory)}
-.media-field{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
-.media-field .avatar{width:76px;height:76px;font-size:1.3rem}
-.media-field .media-body{flex:1 1 200px;display:grid;gap:8px;min-width:0}
-.media-field .media-body .actions{margin:10px 0 0}
-.media-field .media-body .actions .danger{margin-left:0}
+/* Campo de fotografia: prévia circular e caixa de upload com a mesma altura e proporção minimamente quadrada.
+   Os tokens --photo-size (altura comum), --photo-ratio (largura da caixa) e --photo-gap reescalçam o bloco em cada faixa de tela. */
+.media-field{
+  --photo-size:clamp(124px,34vw,152px);--photo-ratio:1.2;--photo-gap:clamp(12px,3.2vw,18px);
+  --photo-pick-w:calc(var(--photo-size)*var(--photo-ratio));
+  display:grid;grid-template-columns:var(--photo-size) minmax(0,var(--photo-pick-w));
+  grid-template-areas:"preview pick" "actions actions";
+  column-gap:var(--photo-gap);row-gap:clamp(10px,2.6vw,14px);
+  align-items:start;justify-content:start;max-width:100%}
+.media-field>.avatar{grid-area:preview;width:var(--photo-size);height:var(--photo-size);border-radius:50%;
+  font-size:clamp(1.05rem,4vw,1.35rem)}
+.media-field>.avatar svg.i{width:30%;height:30%}
+.media-field .media-body{grid-area:pick;min-width:0;display:grid}
+.media-field .file-pick{width:100%;min-height:var(--photo-size);padding:clamp(12px,1.4vw,20px) clamp(12px,1.6vw,16px);gap:8px}
+.media-field .file-pick .file-ico svg{width:clamp(26px,20%,38px);height:clamp(26px,20%,38px)}
+.media-field .file-pick .file-name{font-size:.82rem}
+.media-field .actions{grid-area:actions;justify-content:flex-start;margin:2px 0 0}
+.media-field .actions .danger{margin-left:0}
+@media(min-width:560px){
+  .media-field{--photo-size:clamp(150px,20vw,176px);--photo-ratio:1.22;--photo-gap:clamp(18px,2.2vw,22px)}}
+@media(min-width:1000px){
+  /* o bloco passa a ocupar a largura de uma coluna da grade do formulário: 1,22 : 1 e folga de 22px */
+  .media-field{--photo-size:clamp(184px,15vw,216px);--photo-ratio:1.22;--photo-gap:22px}}
 
 /* ---------- Busca ---------- */
 .search{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;border-radius:999px;background:var(--surface-2);
