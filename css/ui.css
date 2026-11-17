@@ -134,6 +134,9 @@ input::file-selector-button:hover{background:#302c27}
 .check input{margin:1px 0 0}
 .form-grid{display:grid;gap:16px;margin:0 0 4px}
 .field--full{grid-column:1/-1}
+.field-note{grid-column:1/-1;margin:-6px 0 0;font-size:.8rem;line-height:1.45;color:var(--muted);min-height:0}
+.field-note:empty{display:none}
+.field-note.is-warn{color:var(--gold-strong)}
 .form-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
 .form-actions button{flex:1 1 160px}
 .form-actions .primary{flex:2 1 220px}

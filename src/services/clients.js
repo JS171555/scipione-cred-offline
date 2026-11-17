@@ -2,7 +2,7 @@ import*as db from '../db/idb.js';import*as V from '../domain/validators.js';impo
 import{uid,list,one,enc,blobOp,blobBytes,hist}from './records.js';
 export{blobBytes};
 export const CATS=['Identificação','Comprovante de endereço','Comprovante de transferência','Outro'];
-const LABEL={type:'Tipo',name:'Nome',doc:'CPF/CNPJ',rg:'RG',phone:'Telefone',mobile:'Celular',email:'E-mail',address:'Endereço'};
+const LABEL={type:'Tipo',name:'Nome',doc:'CPF/CNPJ',rg:'RG',phone:'Telefone',mobile:'Celular',email:'E-mail',cep:'CEP',street:'Rua',district:'Bairro',city:'Cidade',state:'Estado',address:'Endereço'};
 export const listClients=()=>list('clients'),getClient=id=>one('clients',id);
 export function validate(d,old,all){
   const e={},pj=d.type==='PJ';

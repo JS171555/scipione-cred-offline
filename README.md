@@ -83,6 +83,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 
 - Cadastro de pessoa física e jurídica, com validação e máscara de CPF/CNPJ.
 - Dados de contato, endereço, foto e documentos anexos.
+- Endereço com CEP, rua, bairro, cidade e UF; quando online, o CEP é consultado no ViaCEP e o endereço completo é preenchido automaticamente. Sem internet ou sem resposta da API, todos os campos continuam editáveis manualmente.
 - Foto do cliente com recorte automático; iniciais são usadas quando não há imagem.
 - Busca, ordenação e filtros por taxa de juros.
 - Lista paginada com 20 clientes por página, preservando busca, filtros e ordenação.
@@ -287,10 +288,10 @@ O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos
 Os testes usam apenas Node.js, sem dependências externas:
 
 ```sh
-for t in money validators crypto stage4 backup; do node tests/$t.test.mjs; done
+for t in money validators address crypto stage4 backup; do node tests/$t.test.mjs; done
 ```
 
-Eles cobrem aritmética monetária, validadores de CPF/CNPJ, criptografia do cofre, persistência e backup/restauração. A interface também é validada com um smoke test de ponta a ponta cobrindo clientes, documentos, dívidas, juros em lote, Excel, backup, bloqueio e desbloqueio.
+Eles cobrem aritmética monetária, validadores de CPF/CNPJ, máscara e composição de endereço, criptografia do cofre, persistência e backup/restauração. A interface também é validada com um smoke test de ponta a ponta cobrindo clientes, documentos, dívidas, juros em lote, Excel, backup, bloqueio e desbloqueio.
 
 ## Compatibilidade
 

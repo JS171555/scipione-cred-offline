@@ -1,6 +1,6 @@
-import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,filePicker,pager}from './kit.js';
-let X;const h=(...a)=>X.h(...a),urls=[];
-const clean=()=>{unwatch();urls.splice(0).forEach(u=>URL.revokeObjectURL(u));document.querySelectorAll('dialog.viewer').forEach(d=>d.close())};
+import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import*as CEP from '../services/viacep.js';import{composeAddress,maskCep,onlyDigits,validCep}from '../domain/address.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,filePicker,pager}from './kit.js';
+let X;const h=(...a)=>X.h(...a),urls=[];let stopForm=()=>{};
+const clean=()=>{stopForm();stopForm=()=>{};unwatch();urls.splice(0).forEach(u=>URL.revokeObjectURL(u));document.querySelectorAll('dialog.viewer').forEach(d=>d.close())};
 const render=(...n)=>{clean();X.show(...n)};A.onLock(clean);
 const url=(b,t)=>{const u=URL.createObjectURL(new Blob([b],{type:t}));urls.push(u);return u};
 const kb=n=>n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
@@ -14,6 +14,11 @@ export const openProfile=(ctx,id)=>{X=ctx;profile(id)};
 function list(q){return CL.clientList(U,{home:X.home,open:profile,newClient:()=>form(),bulk:()=>D.bulk(U,list)},typeof q==='string'?q:'')}
 function form(c={}){
   let photo,previewUrl=null,previewSeq=0;const err=h('p',{class:'error',role:'alert'}),fe={},prev=h('div',{class:'avatar avatar--lg'},icon('camera',26));
+  let lookupTimer=0,lookupSeq=0,lookupController=null,noteTimer=0;
+  const note=h('p',{class:'field-note',role:'status','aria-live':'polite'});
+  const setNote=(text,warn=false)=>{clearTimeout(noteTimer);note.textContent=text;note.classList.toggle('is-warn',!!warn);
+    if(text&&!warn)noteTimer=setTimeout(()=>{if(note.isConnected)note.textContent=''},4000)};
+  const dispose=()=>{clearTimeout(lookupTimer);clearTimeout(noteTimer);lookupSeq++;lookupController?.abort();lookupController=null};
   const fld=(id,label,type='text',ac,full=false)=>{const e=h('small',{class:'error'});fe[id]=e;return h('div',{class:'field'+(full?' field--full':''),id:'f-'+id},h('label',{for:id},label),h('input',{id,type,autocomplete:ac,value:c[id]||''}),e)};
   const paint=async()=>{const seq=++previewSeq;let u=null;
     if(photo?.file){u=URL.createObjectURL(photo.file);urls.push(u)}
@@ -25,7 +30,7 @@ function form(c={}){
   const btn=h('button',{class:'primary',type:'submit'},c.id?'Salvar alterações':'Cadastrar cliente');
   const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');btn.disabled=true;
     const g=k=>f.elements[k].value.trim(),t=g('type');
-    try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),address:g('address')},c.id?c:null,photo))}
+    try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),cep:g('cep'),state:g('state'),street:g('street'),district:g('district'),city:g('city'),address:g('address')},c.id?c:null,photo))}
     catch(x){for(const[k,m]of Object.entries(x.errs||{}))fe[k].textContent=m;err.textContent=x.message}finally{btn.disabled=false}}},
     h('h2',{},'Dados do cliente'),
     h('div',{class:'form-grid'},
@@ -36,13 +41,45 @@ function form(c={}){
       fld('name','Nome completo','text','name',true),
       h('div',{class:'field'},h('label',{for:'type'},'Tipo de cliente'),h('select',{id:'type'},h('option',{value:'PF',selected:c.type!=='PJ'},'Pessoa Física'),h('option',{value:'PJ',selected:c.type==='PJ'},'Pessoa Jurídica'))),
       fld('doc','CPF'),fld('rg','RG'),fld('phone','Telefone','tel','tel'),fld('mobile','Celular','tel','tel'),fld('email','E-mail','email','email'),
-      fld('address','Endereço completo','text','street-address',true)),
+      fld('cep','CEP','text','postal-code'),fld('state','Estado (UF)','text','address-level1'),
+      fld('street','Rua','text','address-line1',true),
+      fld('district','Bairro','text','address-line2'),fld('city','Cidade','text','address-level2'),
+      fld('address','Endereço completo','text','street-address',true),note),
     err,
     h('div',{class:'form-actions'},btn,h('button',{type:'button',onclick:()=>c.id?profile(c.id):list()},'Cancelar'),c.id&&h('button',{type:'button',class:'danger form-delete',onclick:removeClient},'Excluir cliente')));
   const kind=()=>f.elements.type.value==='PJ'?'cnpj':'cpf',sync=()=>{const pj=kind()==='cnpj';f.querySelector('label[for=doc]').textContent=pj?'CNPJ':'CPF';f.querySelector('#f-rg').hidden=pj;f.elements.doc.value=V.mask[kind()](f.elements.doc.value)};
   f.elements.type.onchange=sync;f.elements.doc.addEventListener('input',e=>e.target.value=V.mask[kind()](e.target.value));
   ['phone','mobile'].forEach(k=>f.elements[k].addEventListener('input',e=>e.target.value=V.mask.phone(e.target.value)));
-  render(top(c.id?'edit-client':'new-client',c.id?'Editar cliente':'Novo cliente',()=>c.id?profile(c.id):list()),f);sync();paint();
+  f.elements.state.maxLength=2;f.elements.state.autocapitalize='characters';
+  const compose=()=>composeAddress({street:f.elements.street.value,district:f.elements.district.value,city:f.elements.city.value,state:f.elements.state.value});
+  ['street','district','city','state'].forEach(k=>f.elements[k].addEventListener('input',()=>{
+    if(k==='state')f.elements.state.value=f.elements.state.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,2);
+    const a=compose();if(a)f.elements.address.value=a;
+  }));
+  const runLookup=async(d,seq)=>{
+    const ctrl=new AbortController();lookupController=ctrl;
+    try{
+      const r=await CEP.lookupCep(d,{signal:ctrl.signal});
+      if(seq!==lookupSeq||!f.isConnected||onlyDigits(f.elements.cep.value)!==d)return;
+      f.elements.street.value=r.street;f.elements.district.value=r.district;f.elements.city.value=r.city;f.elements.state.value=r.state;
+      f.elements.address.value=composeAddress(r);setNote('Endereço preenchido pelo ViaCEP.');
+    }catch(x){
+      if(x?.name==='AbortError'||seq!==lookupSeq||!f.isConnected)return;
+      setNote(x?.code==='NOT_FOUND'?'CEP não encontrado. Preencha manualmente.':x?.code==='OFFLINE'?'Sem conexão. Preencha o endereço manualmente.':'Não foi possível consultar o CEP agora. Preencha manualmente.',true);
+    }finally{if(lookupController===ctrl)lookupController=null}
+  };
+  const schedule=()=>{
+    clearTimeout(lookupTimer);lookupSeq++;lookupController?.abort();lookupController=null;
+    const d=onlyDigits(f.elements.cep.value);
+    if(d.length<8){setNote('');return}
+    if(!validCep(d)){setNote('CEP inválido. Informe os 8 dígitos ou preencha manualmente.',true);return}
+    if(!navigator.onLine){setNote('Sem conexão. Preencha o endereço manualmente.',true);return}
+    setNote('Consultando CEP...');const seq=lookupSeq;
+    lookupTimer=setTimeout(()=>runLookup(d,seq),650);
+  };
+  f.elements.cep.addEventListener('input',e=>{const v=maskCep(e.target.value);if(e.target.value!==v)e.target.value=v;schedule()});
+  f.elements.cep.addEventListener('blur',()=>{const d=onlyDigits(f.elements.cep.value);if(d.length>0&&d.length<8)setNote('CEP incompleto. Informe os 8 dígitos ou preencha manualmente.',true)});
+  render(top(c.id?'edit-client':'new-client',c.id?'Editar cliente':'Novo cliente',()=>c.id?profile(c.id):list()),f);stopForm=dispose;sync();paint();
 }
 const EXT={'image/webp':'.webp','image/jpeg':'.jpg','image/png':'.png','application/pdf':'.pdf'};
 const fname=d=>EXT[d.type]?d.name.replace(/\.[a-z0-9]{2,5}$/i,'')+EXT[d.type]:d.orig;

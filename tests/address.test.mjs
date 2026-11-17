@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import{maskCep,validCep,composeAddress,onlyDigits}from '../src/domain/address.js';
+assert.equal(onlyDigits('01001-000'),'01001000');
+assert.equal(maskCep('01001000'),'01001-000');
+assert.equal(maskCep('0100100'),'01001-00');
+assert(validCep('01001-000'));
+assert(!validCep('0100100'));
+assert(!validCep('00000000'));
+assert.equal(composeAddress({street:'Praça da Sé',district:'Sé',city:'São Paulo',state:'sp'}),'Praça da Sé, Sé - São Paulo/SP');
+assert.equal(composeAddress({street:'Rua A',city:'Campinas',state:'SP'}),'Rua A, Campinas/SP');
+assert.equal(composeAddress({city:'Campinas',state:'SP'}),'Campinas/SP');
+assert.equal(composeAddress({}),'');
+console.log('address: ok');
