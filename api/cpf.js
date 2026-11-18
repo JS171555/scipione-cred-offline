@@ -2,6 +2,9 @@ import{validCPF,digits}from '../src/domain/validators.js';
 
 const ENDPOINT='https://apicpf.com/api/consulta';
 const TIMEOUT=8000;
+// Limite simples por IP (por instância) para evitar uso abusivo da chave paga.
+const WINDOW=60000,MAX_HITS=20,hits=new Map();
+const limited=ip=>{const now=Date.now(),h=(hits.get(ip)||[]).filter(t=>now-t<WINDOW);h.push(now);hits.set(ip,h);if(hits.size>5000)hits.clear();return h.length>MAX_HITS};
 
 const send=(res,status,payload)=>{
   res.statusCode=status;
@@ -12,6 +15,10 @@ const send=(res,status,payload)=>{
 
 export default async function handler(req,res){
   if(req.method!=='GET')return send(res,405,{ok:false,reason:'METHOD'});
+  const site=req.headers?.['sec-fetch-site'];
+  if(site&&site!=='same-origin')return send(res,403,{ok:false,reason:'FORBIDDEN'});
+  const ip=String(req.headers?.['x-forwarded-for']||'').split(',')[0].trim()||'anon';
+  if(limited(ip))return send(res,429,{ok:false,reason:'UNAVAILABLE'});
   const url=new URL(req.url||'/','https://local.invalid');
   const cpf=digits(url.searchParams.get('cpf'));
   if(cpf.length!==11||!validCPF(cpf))return send(res,422,{ok:false,reason:'INVALID'});
