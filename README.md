@@ -166,10 +166,21 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 ├── manifest.json
 ├── sw.js
 ├── vercel.json
+├── package.json
+├── .env.example
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── api/
+│   └── cpf.js
 ├── css/
 │   ├── app.css
 │   └── ui.css
+├── scripts/
+│   ├── check-static.mjs
+│   └── run-tests.mjs
 ├── src/
+│   ├── config/
 │   ├── core/
 │   ├── db/
 │   ├── domain/
@@ -196,7 +207,11 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 │   ├── icons/
 │   └── img/
 ├── tests/
+│   ├── *.test.mjs
+│   ├── helpers/
+│   └── unit/
 ├── vendor/
+│   └── fflate.min.js
 └── docs/
     └── screenshots/
 ```
@@ -207,7 +222,7 @@ Foi pensado para uso pessoal e profissional em cenários que exigem discrição:
 
 - Navegador moderno com suporte a ES Modules, Web Crypto, IndexedDB e Service Worker.
 - Python 3 ou qualquer servidor HTTP estático.
-- Node.js 18+ apenas para executar os testes.
+- Node.js apenas para executar os testes; a suíte foi verificada em `v22.23.4` (não há execução registrada em Node 18/20).
 
 ### Ambiente local
 
@@ -242,7 +257,9 @@ O `vercel.json` já configura:
 
 - `sw.js` sem cache HTTP e com escopo na raiz, para o aplicativo instalado receber atualizações;
 - `/` e `index.html` sem cache, para evitar uma interface antiga;
-- `X-Content-Type-Options` e `Referrer-Policy` como cabeçalhos de segurança.
+- `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, `Cross-Origin-Opener-Policy: same-origin-allow-popups` e `Content-Security-Policy: frame-ancestors 'none'` em todas as rotas (`vercel.json:38-57`).
+
+O `frame-ancestors` **só existe nesse cabeçalho**: a CSP que endurece o documento está na `<meta http-equiv>` de `index.html:3` (`default-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`), e `<meta>` não aceita `frame-ancestors` — a especificação ignora essa diretiva fora de um header. Nos dois canais, portanto, o que cada um entrega é diferente.
 
 A variável `APICPF_API_KEY` é opcional: sem ela o aplicativo funciona normalmente e a validação de CPF fica manual. Ela é usada somente pela função serverless `api/cpf.js` e nunca é enviada ao navegador. A Vercel entrega o site por HTTPS, contexto exigido pelo service worker e pelo Web Crypto.
 
@@ -255,13 +272,14 @@ A variável `APICPF_API_KEY` é opcional: sem ela o aplicativo funciona normalme
 
 A URL fica no formato `https://js171555.github.io/scipione-cred-offline/`.
 
-O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos os caminhos são relativos, então o service worker, o manifesto e os ícones funcionam também nesse subdiretório. A diferença é que o GitHub Pages não permite os cabeçalhos de cache definidos no `vercel.json` nem executa a função serverless: a validação de CPF fica silenciosamente manual.
+O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos os caminhos são relativos, então o service worker, o manifesto e os ícones funcionam também nesse subdiretório. A diferença é que o GitHub Pages não permite os cabeçalhos definidos no `vercel.json` — nem os de cache, nem os de segurança — nem executa a função serverless: a validação de CPF fica silenciosamente manual, e nesse canal `frame-ancestors`/`X-Frame-Options` não existem, restando apenas o que a `<meta>` de `index.html:3` entrega.
 
 ## Segurança e privacidade
 
-- A senha do cofre não é armazenada. Ela deriva uma chave (KEK) via PBKDF2-SHA256 com 600.000 iterações; essa chave protege a DEK, que cifra os registros com AES-GCM 256.
-- Para permitir índices e ordenação, poucos metadados (`id`, `createdAt` e `clientId`) permanecem em claro; o conteúdo dos registros é cifrado.
-- O cofre não tem conta remota nem telemetria, e clientes, dívidas, documentos e histórico não são enviados a servidores. A exceção é o CPF digitado no cadastro: quando online e com a chave configurada, ele é enviado à APICPF através da função serverless para validação e retorno de nome, nascimento e gênero. A chave fica apenas no servidor; veja `docs/apicpf.md`.
+- A senha do cofre não é armazenada. Ela deriva uma chave (KEK) via PBKDF2-SHA256 com 600.000 iterações (`src/security/crypto.js:4`,`:6`); essa chave protege a DEK, que cifra os registros com AES-GCM 256 (`crypto.js:9-11`). Isso descreve o mecanismo, não é uma garantia de segurança por si: o que a cifra protege é o **conteúdo** de `clients`, `debts`, `documents`, `history` e `blobs` em repouso no IndexedDB.
+- Para permitir índices e ordenação, poucos metadados (`id`, `createdAt` e `clientId`) permanecem em claro; o conteúdo dos registros é cifrado (`src/services/records.js:1`,`:7`). Também ficam em claro, por design: os parâmetros do cofre em `meta/vault` (`salt`, `iv`, `wrapped`, `iter` — `crypto.js:11`, gravado em `src/security/auth.js:21`), o contador de tentativas em `meta/guard` (`auth.js:26`-`:32`) e as preferências `settings/idleMinutes` e `settings/dueWindow` (`auth.js:21`,`:33`; `src/services/settings.js:2`,`:3`). Um dump do banco revela, portanto, quantidade de clientes, UUIDs, datas e o grafo dívida↔cliente, mas não nomes, CPFs, valores nem anexos.
+- Enquanto há sessão viva, a DEK é persistida como `CryptoKey` em `meta/session` para que a mesma aba reabra sem pedir senha de novo (`src/security/auth.js:55`), e esse registro é apagado no bloqueio e quando a sessão é inválida (`auth.js:43`,`:46`,`:67`). A chave é marcada como não extraível (`crypto.js:2`), o que impede ler os bytes da chave — não impede usá-la para decifrar a partir de código da mesma origem. O `localStorage` guarda só a configuração pública do cliente OAuth (`clientId`, `projectId`, origens), sem segredo (`src/services/google-drive.js:18`,`:45`; `src/config/google.js:4`-`:10`).
+- O cofre não tem conta remota nem telemetria, e clientes, dívidas, documentos e histórico não são enviados a servidores. A exceção é o CPF digitado no cadastro: quando online e com a chave configurada, ele é enviado **apenas como 11 dígitos** à função serverless `/api/cpf` (`src/services/apicpf.js:7`,`:24`), que o repassa à APICPF (`api/cpf.js:17`,`:25`) e devolve nome, nascimento e gênero — que voltam de terceiro e só preenchem campos vazios (`apicpf.js:33`-`:35`; `src/ui/clients.js:87`,`:88`). A chave fica apenas no servidor; veja `docs/apicpf.md`. O CEP digitado segue o mesmo desenho: vai só o CEP ao ViaCEP e voltam rua, bairro, cidade e UF (`src/services/viacep.js:3`,`:17`; `src/ui/clients.js:106`). Se você ativar o backup no Google Drive, o ZIP gerado sobe para a sua conta Google (`src/services/google-drive.js:194`) — cifrado apenas se a criptografia com senha foi marcada.
 - **Não há recuperação de senha.** Se a senha do cofre for esquecida, os dados não poderão ser abertos. Use uma senha forte e mantenha backups.
 - A criptografia protege os dados em repouso. Ela não protege contra aparelho comprometido, malware ou acesso ao app desbloqueado.
 - O atraso após tentativas incorretas é local e contornável; a defesa principal é o custo do PBKDF2 e uma senha forte.
@@ -287,13 +305,22 @@ O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos
 
 ## Testes
 
-Os testes usam apenas Node.js, sem dependências externas:
+Os testes usam apenas Node.js, sem dependências externas. Comando canônico:
 
 ```sh
-for t in money validators address crypto stage4 backup apicpf; do node tests/$t.test.mjs; done
+node --test "tests/**/*.test.mjs"
 ```
 
-Eles cobrem aritmética monetária, validadores de CPF/CNPJ, máscara e composição de endereço, criptografia do cofre, persistência, backup/restauração e a função serverless da APICPF. A interface também é validada com um smoke test de ponta a ponta cobrindo clientes, documentos, dívidas, juros em lote, Excel, backup, bloqueio e desbloqueio.
+Duas variantes são proibidas, e as duas foram medidas em Node `v22.23.4`:
+
+- `node --test tests` (o diretório, sem glob) **falha** — `Cannot find module '…/tests'`, exit 1.
+- o laço `for t in …; do node tests/$t.test.mjs; done` **engole a falha**: em bash o código de saída de um laço é o do último comando, então um arquivo quebrado no início passa se o último terminar verde.
+
+Em lugar do comando cru, `node scripts/run-tests.mjs` roda o mesmo conjunto com gate (conta os arquivos descobertos, lê o exit code sem pipe e relê o TAP exigindo `# fail 0`), e `node scripts/check-static.mjs` roda as checagens estáticas (sintaxe com `node --check`, arquivos essenciais, `sw.js`, JSON, premissa de zero dependências e segredos commitados).
+
+O `push` e os pull requests passam por `.github/workflows/ci.yml`, com três jobs: `estatico`, `testes` (matriz de fuso `America/Sao_Paulo` e `UTC`, bloqueante, com artefatos TAP/JUnit/cobertura) e `smoke-navegador` — este último `continue-on-error: true`, disparado apenas por `workflow_dispatch`, que hoje **não executa nenhum teste de navegador**: serve para detectar o browser do runner e registrar o roteiro do que ainda falta virar teste. O workflow não faz deploy e não instala dependências.
+
+A suíte cobre aritmética monetária, validadores de CPF/CNPJ, máscara e composição de endereço, situação de vencimento e busca, criptografia do cofre, formato de backup/restauração e a função serverless da APICPF. **Não existe smoke test de ponta a ponta da interface**: cobertura de UI em navegador real é avaliação futura, não entrega atual. Tudo roda em Node puro, com harness próprios em `tests/helpers/` (IndexedDB e DOM falsos, mock de `fetch`); nenhum teste abre um navegador.
 
 ## Compatibilidade
 
@@ -304,7 +331,25 @@ Eles cobrem aritmética monetária, validadores de CPF/CNPJ, máscara e composi�
 
 ## Documentação
 
-A documentação técnica detalhada — modelo de dados, criptografia, formato de backup, relatórios e decisões de implementação — está em [docs/README.md](docs/README.md).
+A documentação técnica detalhada está em `docs/`, um arquivo por responsabilidade:
+
+| Documento | O que responde |
+| --- | --- |
+| [docs/README.md](docs/README.md) | índice do que existe em `docs/` e resumo técnico por área |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | camadas, módulos, dependências e invariantes de arquitetura |
+| [docs/PROJECT_MAP.md](docs/PROJECT_MAP.md) | "onde eu modifico esta funcionalidade?" — mapa por funcionalidade com `arquivo:linha` |
+| [docs/DATABASE.md](docs/DATABASE.md) | stores do IndexedDB, formato do registro cifrado, índices, migrações, cofre/sessão e backup |
+| [docs/SECURITY.md](docs/SECURITY.md) | cofre, sessão, superfície de ataque, cabeçalhos/CSP, serverless e saída de dados |
+| [docs/API.md](docs/API.md) | catálogo das interfaces exportadas por módulo (`arquivo:linha` de cada definição) |
+| [docs/TESTING.md](docs/TESTING.md) | como a suíte roda, o que cada camada cobre (com cobertura medida) e o que só teste de navegador prova |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | pendências priorizadas a partir das auditorias |
+| [docs/apicpf.md](docs/apicpf.md) | como funciona a validação de CPF e onde a chave mora |
+| [docs/google-drive.md](docs/google-drive.md) | OAuth do Drive, escopo `drive.file`, configuração por origem e erros comuns |
+| [docs/auditoria-ui-ux-codigo.md](docs/auditoria-ui-ux-codigo.md) | auditoria anterior de UI/UX e código, com o que foi aceito como risco |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | histórico de versões e o que mudou em cada uma |
+| [AGENTS.md](AGENTS.md) | convenções de contribuição para quem edita o repositório (arquivo na raiz) |
+
+Todo documento acima carrega `arquivo:linha` conferido contra o código; a suíte está em `tests/` e o estado real de cobertura, nos 15 comportamentos auditados, está descrito em [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Licença
 
