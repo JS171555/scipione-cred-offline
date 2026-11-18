@@ -12,7 +12,7 @@
  *   node scripts/check-static.mjs --root=/dir        # raiz alternativa (auto-teste)
  *
  * exit 0 = verde · 1 = falha · 2 = uso/ambiente errado. Sem `|| true`, sem `exit 0` oculto.
- * Grupos: essenciais · sintaxe · sw · json · deps · segredos
+ * Grupos: essenciais · sintaxe · sw · json · deps · segredos · docs
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -20,7 +20,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const GROUPS = ['essenciais', 'sintaxe', 'sw', 'json', 'deps', 'segredos'];
+const GROUPS = ['essenciais', 'sintaxe', 'sw', 'json', 'deps', 'segredos', 'docs'];
 let root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let only = null;
 
@@ -398,8 +398,125 @@ function checkSecrets() {
   info('segredos', 'clientId de OAuth e nomes de variáveis são públicos por especificação e não contam como segredo');
 }
 
+
+/* ============================================================================ docs */
+// Toda afirmação da documentação é citada como `arquivo:linha`. Se o arquivo não está no
+// repositório ou a linha não existe, o documento está mentindo para quem lê — e isso já
+// aconteceu: 13 referências apontavam para relatórios de auditoria que ficaram fora do
+// repo, e o validador ad hoc não as via porque só reconhecia caminhos com prefixo
+// conhecido. A checagem mora aqui (e não num script python de um agente) para que o
+// critério seja do projeto, não da ferramenta que produziu o texto.
+function checkDocs() {
+  // docs/auditoria/ é a evidência bruta coletada no commit de referência e congelada como
+  // texto histórico: ela cita linhas tais como eram em e78d776. Reescrevê-la a cada mudança
+  // destrói justamente o valor probatório, então ela é declarada isenta da checagem de
+  // faixa — os documentos canônicos (todos os outros) NÃO estão isentos.
+  const isento = (f) => f.startsWith('docs/auditoria/');
+  const docs = ALL.filter((f) => !isento(f) && (f === 'README.md' || f === 'AGENTS.md' || (f.startsWith('docs/') && f.endsWith('.md'))));
+  if (!docs.length) return fail('docs', 'nenhum documento encontrado — a checagem não verificou nada');
+
+  const known = new Set(ALL);
+  const byName = new Map();
+  for (const f of ALL) {
+    const b = path.basename(f);
+    byName.set(b, (byName.get(b) || 0) + 1);
+    const relDir = path.posix.dirname(f);
+    if (relDir !== '.') byName.set(relDir + '/' + b, (byName.get(relDir + '/' + b) || 0) + 1);
+  }
+  const lineCount = new Map();
+  const count = (rel) => {
+    if (!lineCount.has(rel)) {
+      try {
+        lineCount.set(rel, readFileSync(path.join(root, rel), 'utf8').split('\n').length);
+      } catch {
+        lineCount.set(rel, 0);
+      }
+    }
+    return lineCount.get(rel);
+  };
+
+  // caminho com ao menos um '/' : audit/x.md:592 · src/services/debts.js:20 · docs/API.md:70
+  const PATHED = /([\w.@+-]+(?:\/[\w.@+-]+)+\.(?:js|mjs|css|html|json|md|ts|py|yml|yaml))(?::(\d{1,4})(?:-(\d{1,4}))?)/g;
+  // só o nome: debts.js:14 · sw.js:2  (resolvido quando o nome é único no repositório)
+  const BARE = /(?<![\w./-])([\w][\w.-]*\.(?:js|mjs|css|html|json|md))(?::(\d{1,4})(?:-(\d{1,4}))?)/g;
+  const ABSOLUTO = /(\/home\/[\w./-]*|\/Users\/[\w./-]*|C:\\[\\\w.-]*)/g;
+
+  const unresolved = new Map(), outOfRange = new Map(), absolute = new Map(), ambiguous = new Set();
+  let resolved = 0;
+
+  const register = (map, key, where) => {
+    const list = map.get(key) || [];
+    if (list.length < 3) list.push(where);
+    if (list.length === 3 && !map.has(key + '#more')) map.set(key + '#more', true);
+    map.set(key, list);
+  };
+
+  for (const rel of docs) {
+    const text = readFile('docs', rel);
+    if (text === null) continue;
+    text.split('\n').forEach((line, i) => {
+      const where = rel + ':' + (i + 1);
+      for (const m of line.matchAll(ABSOLUTO)) {
+        if (m[1].replace(/\/+$/, '').endsWith('/scipione-cred-offline')) continue; // raiz do projeto é citável
+        const list = absolute.get(m[1]) || [];
+        if (list.length < 4) list.push(where);
+        absolute.set(m[1], list);
+      }
+      for (const rx of [PATHED, BARE]) {
+        rx.lastIndex = 0;
+        for (const m of line.matchAll(rx)) {
+          const target = m[1], from = Number(m[2]), to = Number(m[3] || m[2] || 0);
+          if (!from) continue;
+          let hit = null;
+          const suffix = (t) => ALL.filter((f) => f === t || f.endsWith('/' + t));
+          if (known.has(target)) hit = target;
+          else if (target.includes('/') && known.has(target.replace(/^\.\//, ''))) hit = target.replace(/^\.\//, '');
+          else if (target.includes('/')) {
+            // forma abreviada de tabela ("ui/shell.js" quer dizer src/ui/shell.js): vale
+            // quando um único arquivo do repositório termina por aquele caminho.
+            const c = suffix(target);
+            if (c.length === 1) hit = c[0];
+            else if (c.length > 1) { ambiguous.add(target + ' [' + where + '] sufixo ambíguo: ' + c.join(', ')); continue; }
+            else { register(unresolved, target, where); continue; }
+          } else if (!target.includes('/')) {
+            const n = byName.get(target) || 0;
+            if (n === 1) hit = ALL.find((f) => path.basename(f) === target || f === target);
+            else if (n > 1) {
+              const cands = ALL.filter((f) => f === target || path.basename(f) === target);
+              if (cands.some((c) => count(c) >= to)) { resolved++; continue; }
+              ambiguous.add(target + ' (' + where + ')');
+              continue;
+            } else { register(unresolved, target, where); continue; }
+          } else { register(unresolved, target, where); continue; }
+          if (!hit) { register(unresolved, target, where); continue; }
+          const total = count(hit);
+          if (to > total) register(outOfRange, hit + ':' + m[2] + (m[3] ? '-' + m[3] : '') + ' (tem ' + total + ' linhas)', where);
+          else resolved++;
+        }
+      }
+    });
+  }
+
+  if (unresolved.size) {
+    for (const [t, where] of unresolved) if (!t.endsWith('#more'))
+      fail('docs', 'citação aponta para arquivo que não está no repositório: `' + t + '` em ' + where.join(', ') + (where.length >= 3 ? ' …' : ''));
+  } else ok('docs', 'todas as citações apontam para arquivos versionados');
+
+  if (outOfRange.size) {
+    for (const [t, where] of outOfRange) if (!t.endsWith('#more'))
+      fail('docs', 'linha citada fora da faixa: ' + t + ' em ' + where.join(', '));
+  } else ok('docs', 'nenhuma linha citada fora da faixa do arquivo');
+
+  if (absolute.size) {
+    for (const [t, where] of absolute) fail('docs', 'caminho absoluto de uma máquina específica na documentação: ' + t + ' em ' + where.join(', '));
+  } else ok('docs', 'nenhum caminho absoluto de máquina específica');
+
+  (resolved ? ok : info)('docs', resolved + ' citações resolvidas em ' + docs.length + ' documentos');
+  if (ambiguous.size) info('docs', ambiguous.size + ' citação(ões) por nome ambíguo: ' + [...ambiguous].slice(0, 4).join(', '));
+}
+
 /* ============================================================================ main */
-const RUNNERS = { essenciais: checkEssenciais, sintaxe: checkSintaxe, sw: checkSw, json: checkJson, deps: checkDeps, segredos: checkSecrets };
+const RUNNERS = { essenciais: checkEssenciais, sintaxe: checkSintaxe, sw: checkSw, json: checkJson, deps: checkDeps, segredos: checkSecrets, docs: checkDocs };
 console.log('=== SCIPIONE CRED — checagens estáticas ===');
 console.log('raiz: ' + root);
 console.log('grupos: ' + [...active].join(', ') + ' · itens: ' + ALL.length + ' (' + LIST_NOTE + ')');
