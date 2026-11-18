@@ -128,8 +128,9 @@ jobs:
         run: |
           # Grupo `docs`: a documentação canônica afirma coisas com `arquivo:linha`. Se o
           # arquivo não está versionado ou a linha não existe, o texto está mentindo para o
-          # revisor — e isso aconteceu: 50+ citações apontavam para relatórios de auditoria
-          # que nunca entraram no repositório, inclusive por caminho absoluto de máquina.
+          # revisor — e isso aconteceu: 108 ocorrências em quatro documentos apontavam para
+          # relatórios de auditoria que nunca entraram no repositório, 13 delas como caminho
+          # absoluto de máquina (/home/ubuntu/audit/...). Medido com git show na base.
           # docs/auditoria/ é evidência congelada no commit de referência e por isso é isenta
           # da checagem de faixa; os documentos canônicos não são. Critério em
           # scripts/check-static.mjs, prova de não-vacuidade em tests/contracts/docs-refs.test.mjs.
