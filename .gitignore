@@ -6,3 +6,6 @@ client_secret*.json
 .env
 .env.local
 .env.*.local
+
+# saída dos scripts de teste/CI (run-tests.mjs)
+artifacts/

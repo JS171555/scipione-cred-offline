@@ -1,0 +1,331 @@
+# =============================================================================
+# CI do SCIPIONE CRED — checa, testa, publica relatórios. Nada mais.
+# =============================================================================
+# Por que este arquivo existe: o repo não tinha CI (`.github/` não existia, package.json
+# não tinha `scripts`, nenhum hook ativo). Duas consequências medidas na auditoria:
+#   - 4 commits alteraram arquivos pré-cacheados sem incrementar `V` em `sw.js`. Com
+#     cache-first puro e URL sem query, o app instalado serve o bundle velho para sempre,
+#     sem erro visível;
+#   - a suíte só era rodada à mão, com um comando que engolia o exit code quando escrito
+#     com pipe.
+# O que ele DELIBERADAMENTE não faz: não faz deploy (é a Vercel, por push; vercel.json é
+# só headers), não faz merge, não comenta no PR, não escreve no repo, não instala
+# dependência — não há `npm install`/`npm ci` em nenhum job, porque "sem build, sem
+# dependências" é decisão registrada do projeto.
+# Os critérios das checagens estáticas moram em scripts/check-static.mjs e os da execução
+# de testes em scripts/run-tests.mjs. Este YAML só os chama, grupo por grupo, para que a
+# UI aponte QUAL verificação caiu — a soma dos grupos é o mesmo veredito de rodar os
+# scripts inteiros antes de abrir o PR.
+
+name: CI
+
+on:
+  pull_request: # sem filtro de branch: todo PR é verificado
+  push:
+    # main = o que entrou; a branch de trabalho = onde o andaime de testes/CI está sendo
+    # montado. Branches de feature não listadas de propósito: já cobertas por pull_request,
+    # e listar as duas coisas duplicaria cada run.
+    branches:
+      - main
+      - chore/project-audit-and-test-infrastructure
+  workflow_dispatch: # triagem manual e disparo do job de navegador
+
+permissions:
+  contents: read
+  # Menor privilégio: com `write`, um passo comprometido faria push ou aprovaria o próprio
+  # PR. Nenhum passo daqui precisa escrever.
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+  # Suíte de segundos: segurar runner rodando resultado velho do mesmo branch não produz
+  # informação e custa mais do que economiza.
+
+env:
+  # O app roda 100% no navegador — Node não entra no bundle nem no deploy. Ele existe aqui
+  # só como aparelho de teste: `node --check`, o runner `node:test` e os scripts/. 22 é a
+  # linha validada localmente (v22.23.4); o README pede >=18, mas glob recursivo em
+  # `node --test` e cobertura nativa são recursos de Node 20+. Fixar a versão impede o CI
+  # de ficar verde no runner e vermelho na máquina de quem tem Node 18 (ou vice-versa).
+  NODE_VERSION: '22'
+
+jobs:
+  # ===========================================================================
+  # Job 1 — checagens determinísticas, sem executar a aplicação.
+  # Antes dos testes de propósito: com sintaxe ou service worker quebrados, rodar a suíte
+  # é desperdício e pode produzir falso verde (arquivo que não carrega ≠ arquivo que passou).
+  # ===========================================================================
+  estatico:
+    name: Estático — sintaxe, essenciais, service worker, JSON, deps, segredos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        # O default do runner é `bash -e {0}`, sem pipefail e sem nounset. Contar com o
+        # default da imagem é o que faz um passo "rodar nada" e ficar verde; então cada run
+        # escreve `set -euo pipefail` e não depende de como o runner foi montado.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 porque a checagem mais valiosa deste job compara o `V` de sw.js
+          # entre a base do PR e o HEAD. Com clone raso o git diff falha e o checker degrada
+          # para "NÃO VERIFICÁVEL" (avisa, não acusa) — a proteção sumiria em silêncio justo
+          # no dia em que alguém precisa dela. O repo tem ~1 MB: o clone completo custa
+          # centenas de ms e é o preço certo.
+          fetch-depth: 0
+
+      - name: "Node ${{ env.NODE_VERSION }} (aparelho de teste, não do app)"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # sem `cache: 'npm'`: não há lockfile nem node_modules, e ativar cache de npm seria
+          # o primeiro passo para naturalizar dependências num projeto sem nenhuma.
+
+      # `node --check` em TODOS os .js/.mjs, incluindo sw.js e api/ (a função serverless).
+      # Não existe `|| true` em nenhum passo: exit não-zero do script falha o passo, passo
+      # falho falha o job, job falho bloqueia o merge. O loop, a contagem de arquivos e a
+      # regra "zero arquivos verificados = falha" moram no script, para que a checagem
+      # local e a da CI não possam divergir.
+      - name: "Sintaxe: node --check em todos os .js/.mjs (sw.js e api/ incluídos)"
+        run: |
+          set -euo pipefail
+          node scripts/check-static.mjs --only=sintaxe
+
+      - name: "Arquivos essenciais (index.html, manifest.json, sw.js, css/*.css, src/main.js)"
+        run: |
+          set -euo pipefail
+          node scripts/check-static.mjs --only=essenciais
+
+      - name: "service worker: formato sc-vN, cada FILES no disco, src/ coberto, bump de V"
+        env:
+          # Base da comparação: em PR o SHA da base; em push, o commit anterior ao push.
+          # workflow_dispatch não tem nenhum dos dois → a expressão devolve vazio e o
+          # checker pula a subchecagem com aviso explícito em vez de inventar veredito.
+          # SHA todo-zero (branch recém-criado) é tratado igual.
+          CHECK_SW_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          node scripts/check-static.mjs --only=sw
+
+      - name: "JSON parseáveis e coerentes (package.json, manifest.json, vercel.json)"
+        run: |
+          set -euo pipefail
+          node scripts/check-static.mjs --only=json
+
+      - name: "Premissa de zero dependências (recusa novos deps, overrides e lockfiles)"
+        run: |
+          set -euo pipefail
+          node scripts/check-static.mjs --only=deps
+
+      - name: "Nenhum segredo commitado (.env com valor, client_secret, chaves de API, PEM)"
+        run: |
+          set -euo pipefail
+          node scripts/check-static.mjs --only=segredos
+
+  # ===========================================================================
+  # Job 2 — o gate bloqueante: a suíte inteira, em dois fusos.
+  # ===========================================================================
+  testes:
+    name: Testes — TZ ${{ matrix.tz }}
+    needs: estatico
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      # fail-fast: false é o ponto, não estética: com true, o primeiro fuso a quebrar
+      # cancelaria o outro e perderíamos a única informação que separa "bug de fuso" de
+      # "bug de horário de verão" de "bug do app" — que é saber em qual dos dois NÃO quebra.
+      fail-fast: false
+      matrix:
+        include:
+          # Vencimentos são sensíveis a fuso: todayISO() em src/domain/due.js depende de
+          # getTimezoneOffset() e o app é pt-BR. Rodar só em UTC escondia a classe clássica
+          # de bug "vencimento de ontem"; rodar só no fuso do host escondia dependência
+          # implícita da máquina de quem testa. Os dois juntos viram contrato testado.
+          # `slug` existe porque America/Sao_Paulo tem barra, e barra em nome de artefato é
+          # um problema que ninguém precisa ter.
+          - { tz: 'America/Sao_Paulo', slug: 'sao-paulo' }
+          - { tz: 'UTC', slug: 'utc' }
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Node ${{ env.NODE_VERSION }} (só para rodar a suíte)"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # ------------------------------ O GATE ---------------------------------
+      # `set -euo pipefail` aqui não é ritual. Se a linha fosse
+      #     node --test <glob> | tee results.tap
+      # o status do pipeline passaria a ser o do ÚLTIMO comando — o `tee` — que devolve 0
+      # mesmo quando o node morreu no meio. O resultado é CI verde com suíte vermelha, que é
+      # PIOR que ausência de CI: autoriza merge com segurança falsa. Medido aqui, com um
+      # teste quebrado de propósito: o pipeline com tee devolve 1 com pipefail ligado e 0
+      # com ele desligado.
+      # Aqui nem há pipe de shell: o wrapper usa spawnSync, grava o TAP por
+      # --test-reporter-destination e depois RELÊ o arquivo exigindo `# fail 0` e
+      # `# cancelled 0`, contando os arquivos descobertos e saindo non-zero se a descoberta
+      # for vazia. Três camadas independentes: exit do runner + sumário reanalisado +
+      # contagem de descoberta.
+      - name: "Suíte completa (bloqueante) — TZ=${{ matrix.tz }}"
+        env:
+          TEST_REPORTER: tap
+        run: |
+          set -euo pipefail
+          node scripts/run-tests.mjs
+
+      # Números de cobertura, SEM threshold bloqueante por ora. A flag é nativa do Node 22
+      # (medido: reporta por arquivo; src/domain/money.js sai 100.00 linha / 89.47 branch).
+      # Sem porta de percentual de propósito: um gate que falha no primeiro dia vira o botão
+      # que desliga o check. O passo continua bloqueante quanto a FALHA DE TESTE (mesma
+      # suíte de novo), só não bloqueia por percentual. Threshold entra depois, com número
+      # defensável e dono.
+      - name: "Cobertura (informativa, sem threshold) — TZ=${{ matrix.tz }}"
+        env:
+          TEST_REPORTER: spec
+        run: |
+          set -euo pipefail
+          node scripts/run-tests.mjs --coverage
+
+      # `if: '!cancelled()'` é obrigatório: sem ele o upload seria pulado exatamente quando
+      # a suíte falha — que é quando o relatório interessa. Run cancelado por push novo fica
+      # sem upload mesmo, porque aí não há resultado a publicar.
+      - name: "Publicar relatórios (TAP + JUnit + log + lcov)"
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-testes-${{ matrix.slug }}
+          path: |
+            artifacts/results.tap
+            artifacts/results.xml
+            artifacts/run.log
+            artifacts/coverage.lcov
+          if-no-files-found: warn
+          retention-days: 14
+        # Obs.: `artifacts/` é efêmero e não deveria ser versionado. Vale acrescentá-lo ao
+        # .gitignore em um commit próprio — este workflow não escreve no repo.
+
+  # ===========================================================================
+  # Job 3 — NÃO BLOQUEANTE, manual, por ora apenas informativo.
+  #
+  # O QUE FALTA COBRIR E POR QUE NODE NÃO ALCANÇA:
+  #  1. Ciclo de vida do service worker (sw.js): install com caches.addAll(FILES)
+  #     (tudo-ou-nada — uma entrada 404 aborta a instalação inteira), activate com
+  #     clients.claim() e expurgo do cache velho quando V muda, skipWaiting() ativando sobre
+  #     uma aba já aberta, e o fallback de navegação que serve index.html do cache. Em Node
+  #     dá para SIMULAR caches/clients/ExtendableEvent, e a simulação passa — mas as três
+  #     propriedades que importam (quando o navegador de fato ativa, se o refresh produzido é
+  #     o correto, se o cache velho foi expurgado numa atualização no ar) só existem em
+  #     navegador real. O job 1 cobre o CONTRATO do arquivo (V e FILES), que é a parte que já
+  #     falhou 4 vezes na história do repo.
+  #  2. IndexedDB de verdade: durability:'strict' e o commit em disco, que um fake não pode
+  #     prometer nem violar.
+  #  3. Conversão de imagem (createImageBitmap + canvas + WebP): em Node esse ramo cai no
+  #     catch e devolve o original — o teste "passa" sem converter nada.
+  #  4. OAuth do Google (popup de consentimento + Google Identity Services): nem em
+  #     navegador é automatizável de ponta a ponta; o máximo honesto é fluxo com credenciais
+  #     falsas e stub de window.google.
+  #  5. Abrir o XLSX gerado no LibreOffice/Excel (compatibilidade real do zip e dos estilos),
+  #     hoje feita "olho no arquivo de amostra".
+  #
+  # POR QUE NÃO INSTALA NADA AQUI:
+  #  Playwright é pesado — pacote + ~150 MB de browser — e incidiria justamente sobre a
+  #  decisão registrada de "sem build, sem dependências". Então o ferramental de navegador
+  #  fica FORA do repositório: é montado no runner, sob demanda, por quem dispara
+  #  workflow_dispatch. Este job se limita a constatar o que o runner tem e a manter o
+  #  roteiro escrito; nada aqui executa teste de navegador. `continue-on-error: true` no job
+  #  inteiro: um flaky de navegador jamais deve barar merge, e este job NÃO pertence à lista
+  #  de status checks obrigatórios da proteção de branch (obrigatórios: `estatico` e os dois
+  #  `testes`).
+  # ===========================================================================
+  smoke-navegador:
+    name: Smoke em navegador (informativo, só manual)
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: testes
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Detectar navegador disponível no runner (não instala nada)"
+        run: |
+          # `-e` ausente de propósito: passo informativo por desenho, o único do arquivo em
+          # que um comando pode falhar sem derrubar nada. Ainda assim não há `|| true`: a
+          # estrutura é if/fi, que trata "binário não existe" explicitamente em vez de
+          # mascarar exit code.
+          set -uo pipefail
+          echo "candidatos a navegador neste runner:"
+          encontrado=""
+          for bin in chromium chromium-browser google-chrome google-chrome-stable microsoft-edge firefox; do
+            if command -v "$bin" >/dev/null 2>&1; then
+              caminho="$(command -v "$bin")"
+              if versao="$("$bin" --version 2>&1)"; then
+                echo "  [presente] $bin -> $caminho :: $versao"
+              else
+                echo "  [presente] $bin -> $caminho :: (não respondeu a --version)"
+              fi
+              if [ -z "$encontrado" ]; then encontrado="$caminho"; fi
+            else
+              echo "  [ausente ] $bin"
+            fi
+          done
+          if [ -n "$encontrado" ]; then
+            echo "RESULTADO: navegador utilizável detectado em $encontrado"
+          else
+            echo "RESULTADO: nenhum navegador instalado neste runner"
+          fi
+          echo "ferramental Playwright:"
+          if command -v python3 >/dev/null 2>&1 && python3 -m playwright --version >/dev/null 2>&1; then
+            echo "  [presente] python3 -m playwright :: $(python3 -m playwright --version)"
+          else
+            echo "  [ausente ] playwright (python)"
+          fi
+          if command -v node >/dev/null 2>&1 && node -e "require.resolve('playwright')" >/dev/null 2>&1; then
+            echo "  [presente] playwright (node)"
+          else
+            echo "  [ausente ] playwright (node) — esperado: este repo não instala dependências"
+          fi
+
+      - name: "Roteiro do que falta virar teste de navegador (documentação, não execução)"
+        run: |
+          set -uo pipefail
+          cat <<'TXT'
+          Este job não executou teste de navegador nenhum e não instalou nada.
+
+          Para virar smoke real, o trabalho é feito NO RUNNER, não no repositório (é assim
+          que o gate continua sem dependências):
+
+            1. servir a raiz por HTTP — service worker exige origem http(s); em file:// o
+               registro simplesmente não acontece:  python3 -m http.server 8123 &
+            2. montar o ferramental sob demanda:  python3 -m pip install playwright
+               && python3 -m playwright install --with-deps chromium
+               (ou reutilizar o Chromium da imagem via executable_path, quando o passo de
+                detecção acima achar um)
+            3. escrever os fluxos em tests/smoke/ (camada (c) da arquitetura de suíte):
+                 - instalar o app, derrubar a rede, recarregar e provar que todas as telas
+                   abrem offline (contrato de sw.js + vercel.json)
+                 - publicar deploy com V novo e provar que a aba aberta troca de bundle
+                   (skipWaiting + clients.claim) e que o cache velho foi expurgado
+                 - IndexedDB com durability:'strict' e reabertura após refresh
+                 - upload de documento com conversão de imagem (createImageBitmap)
+                 - fluxo OAuth com credenciais falsas + stub de window.google
+                 - abrir o XLSX gerado no LibreOffice e asserir que carrega
+            4. manter o job com continue-on-error: true e fora dos status checks
+               obrigatórios da proteção de branch.
+
+          Nada disso entra no gate bloqueante antes de existir um dono para os flaky: teste
+          de navegador que barra merge sem ninguém para reprocessar vira, em duas semanas, o
+          motivo institucional para desligar o gate inteiro.
+          TXT
