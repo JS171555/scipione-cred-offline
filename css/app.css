@@ -4,14 +4,13 @@
 @font-face{font-family:'DM Sans';font-style:normal;font-weight:400 600;font-display:swap;src:url('../assets/fonts/dm-sans-latin.woff2') format('woff2')}
 :root{
   --bg:#080808;--surface:#171717;--surface-2:#201e1b;--surface-3:#2a2723;
-  --line:#34302a;--bronze:#34302a;
   --gold:#b89a62;--gold-strong:#d2b77f;--gold-deep:#8f7748;
   --gold-soft:rgba(184,154,98,.14);--gold-softer:rgba(184,154,98,.07);
   --ivory:#e8dfc9;--muted:#a9a08f;--faint:#8c8477;
   --danger:#d99a87;--danger-soft:rgba(217,154,135,.14);
   --ok:#9dbfa6;--ok-soft:rgba(157,191,166,.13);
   --shadow-1:0 22px 50px -40px rgba(0,0,0,.95);
-  --r-xl:22px;--r-lg:16px;--r-md:12px;--r-sm:9px;
+  --r-xl:22px;--r-lg:16px;
   --font-sans:'DM Sans',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-serif:'Cormorant Garamond','Playfair Display',"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
   --ease:cubic-bezier(.22,.7,.28,1);

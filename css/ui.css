@@ -67,8 +67,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 button.is-loading:disabled{opacity:.82}
 button.is-loading::after{content:"";width:14px;height:14px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex:none;opacity:.9}
 button .i{flex:none}
-button.primary,button.gold{background:var(--gold);color:#080808;font-weight:600}
-button.primary:hover:not(:disabled),button.gold:hover:not(:disabled){background:var(--gold-strong)}
+button.primary{background:var(--gold);color:#080808;font-weight:600}
+button.primary:hover:not(:disabled){background:var(--gold-strong)}
 button.ghost{background:transparent;color:var(--muted)}
 button.ghost:hover:not(:disabled){background:var(--surface-2);color:var(--ivory)}
 button.danger{background:transparent;color:var(--danger)}
@@ -76,7 +76,6 @@ button.danger:hover:not(:disabled){background:var(--danger-soft)}
 button.iconbtn{width:44px;height:44px;min-height:44px;min-width:44px;padding:0;border-radius:50%;background:transparent;color:var(--muted)}
 button.iconbtn:hover:not(:disabled){background:var(--surface-2);color:var(--ivory)}
 button.iconbtn[aria-current=page]{background:var(--gold-softer);color:var(--gold-strong)}
-.btn-block{width:100%}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;align-items:center}
 .actions button{min-height:44px;min-width:0;padding:0 14px;font-size:.86rem;border-radius:12px}
 .actions .danger{margin-left:auto}
@@ -155,7 +154,6 @@ input::file-selector-button:hover{background:#302c27}
 .inline-form{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:0}
 .inline-form .field{flex:1 1 220px;min-width:0}
 .inline-form>button{flex:none}
-.window-form{margin-top:18px}
 .subhead{margin:26px 0 8px;font-size:.98rem;color:var(--ivory)}
 /* Campo de fotografia: a prévia circular usa como diâmetro a própria altura da caixa de upload,
    então topo e base dos dois elementos sempre coincidem.
@@ -249,7 +247,6 @@ button.row:hover:not(:disabled){background:var(--surface-3)}
   background:var(--surface-3);color:var(--gold);font-family:var(--font-serif);font-weight:600;font-size:.95rem;letter-spacing:.02em}
 .avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .avatar--lg{width:88px;height:88px;font-size:1.6rem}
-.avatar--xl{width:104px;height:104px;font-size:1.9rem}
 ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;font-size:.82rem}
 .sub li{color:var(--muted)}
 .actions + .empty{margin-top:16px}
