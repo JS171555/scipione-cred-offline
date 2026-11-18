@@ -21,9 +21,15 @@ export async function lookupCpf(value,{signal}={}){
 
   const request=(async()=>{
     try{
-      const r=await fetch(`/api/cpf?cpf=${cpf}`,{
+      // POST com o CPF no corpo: o número não vai mais para a URL da nossa
+      // função (log de intermediário, histórico do navegador, APM). 429 cai no
+      // mesmo caminho silencioso de UNAVAILABLE que já existia, então a UI não
+      // muda. GET continua aceito no servidor por causa dos bundles velhos.
+      const r=await fetch('/api/cpf',{
+        method:'POST',
         signal:ctrl.signal,
-        headers:{Accept:'application/json'},
+        headers:{Accept:'application/json','Content-Type':'application/json'},
+        body:JSON.stringify({cpf}),
         cache:'no-store'
       });
       let body={};
