@@ -1,4 +1,4 @@
-import*as db from '../db/idb.js';import*as M from '../domain/money.js';import{uid,list,enc,hist}from './records.js';import{listClients}from './clients.js';
+import*as db from '../db/idb.js';import*as M from '../domain/money.js';import{uid,list,enc,hist}from './records.js';import{listClients,getClient}from './clients.js';
 const iso=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s));
 const LABEL={description:'Descrição',principal:'Valor',date:'Data do registro',due:'Vencimento',notes:'Observações'};
 const rec=d=>({id:d.id,clientId:d.clientId,createdAt:d.createdAt,description:d.description,principal:d.principal,rate:d.rate,date:d.date,due:d.due,notes:d.notes||'',updatedAt:d.updatedAt});
@@ -13,6 +13,11 @@ export function validate(d){const e={};
   return e}
 export async function saveDebt(clientId,d,old){
   const errs=validate(d);if(Object.keys(errs).length)throw Object.assign(new Error('Corrija os campos destacados.'),{errs});
+  // Integridade referencial (docs/ROADMAP.md D-01): sem esta checagem a dívida órfã entrava nos
+  // totais do painel, sumia do extrato do cliente e tornava o backup irrestaurável. A UI só oferece
+  // cadastrar dívida dentro do perfil de um cliente, então o caso real é perfil excluído em outra
+  // aba: agora com erro visível, em vez de registro fantasma.
+  if(!clientId||!(await getClient(clientId)))throw Object.assign(new Error('Cliente não encontrado. Atualize a tela e tente de novo.'),{code:'NO_CLIENT'});
   const now=Date.now(),r=rec({...d,id:old?.id||uid(),clientId,createdAt:old?.createdAt||now,updatedAt:now}),ops=[await enc('debts',r)];
   if(!old)ops.push(await hist(clientId,'Dívida cadastrada',`${r.description}: ${M.brl(r.principal)} a ${M.rate(r.rate)} ao mês`));
   else{

@@ -18,7 +18,7 @@ import { stats } from '../../src/services/dashboard.js';
 import { todayISO, status, daysUntil } from '../../src/domain/due.js';
 import { setupVault, lockNow } from '../helpers/vault.mjs';
 import {
-  novoClienteParaSalvar, novoClienteFicticio, novaDividaParaSalvar, novoHistorico, cpfFicticio,
+  novoClienteParaSalvar, novoClienteFicticio, novaDividaParaSalvar, novaDividaFicticia, novoHistorico, cpfFicticio,
 } from '../helpers/fixtures.mjs';
 import { mask } from '../../src/domain/validators.js';
 
@@ -136,25 +136,36 @@ describe('dashboard: interest soma o arredondado POR DÍVIDA (não o arredondame
   });
 });
 
-describe('dashboard: dívida órfã (cliente inexistente)', () => {
+describe('dashboard: dívida órfã legada (cliente inexistente)', () => {
   let cid;
   before(async () => {
     await setupVault();
     cid = await S.saveClient(novoClienteParaSalvar(), null);
     await DV.saveDebt(cid, novaDividaParaSalvar({ description: 'Dívida real', principal: 100000, rate: 1500, date: desdeHoje(-40), due: desdeHoje(-5) }));
-    await DV.saveDebt('cliente-que-nao-existe', novaDividaParaSalvar({ description: 'Dívida órfã', principal: 200000, rate: 1000, date: desdeHoje(-40), due: desdeHoje(5) }));
+    // docs/ROADMAP.md D-01 FECHADO nesta branch: saveDebt recusa clientId inexistente (debts.js:20), então o
+    // órfão não pode mais SEMEAR pelo service — entra por escrita direta (rec.enc + db.batch, como em
+    // tests/svc/records.test.mjs:41 e no `latest/recent` abaixo), representando cofre/backup de versão anterior.
+    await db.batch([
+      await rec.enc('debts', novaDividaFicticia({
+        id: 'dvd-orfa-legado', clientId: 'cliente-que-nao-existe', description: 'Dívida órfã',
+        principal: 200000, rate: 1000, date: desdeHoje(-40), due: desdeHoje(5),
+      })),
+      // a linha de histórico que o saveDebt de antes escrevia para o clientId fantasma: é o que vira "—" no painel
+      await rec.hist('cliente-que-nao-existe', 'Dívida cadastrada', 'Dívida órfã: R$ 2.000,00 a 10% ao mês'),
+    ]);
   });
   after(() => lockNow());
 
-  it('conhecido: a dívida órfã ENTRA nos totais do painel e não aparece em lugar nenhum por cliente', async () => {
-    // docs/ROADMAP.md D-01: debts.saveDebt valida conteúdo, não referência. O painel é onde o furo vira número:
-    // 2 dívidas para 1 cliente. Characterization do comportamento atual.
+  it('conhecido: a dívida órfã LEGADA ENTRA nos totais do painel e não aparece em lugar nenhum por cliente', async () => {
+    // O painel é onde o dado legado vira número: 2 dívidas para 1 cliente. dashboard.js:4 soma listDebts() SEM
+    // cruzar com clients — isso NÃO mudou com D-01 (a guarda está na ESCRITA, não na leitura) e não mudamos.
     const s = await stats();
     assert.deepEqual([s.clients, s.debts], [1, 2]);
     assert.equal(s.principal, 300000, 'o principal órfão foi somado');
     assert.equal(s.interest, 15000 + 20000, 'os juros órfãos também');
     assert.deepEqual([s.overdue, s.soon], [1, 1], 'e a dívida fantasma até dispara alerta de vencimento');
     assert.equal((await DV.listDebts(cid)).length, 1, 'no extrato do cliente real ela não existe');
+    assert.equal((await DV.listDebts()).length, 2, 'na lista global (a do painel) ela existe');
     assert.ok(s.recent.some((r) => r.client === '—'), 'no histórico do painel a referência quebrada vira só "—"');
   });
 
@@ -163,6 +174,13 @@ describe('dashboard: dívida órfã (cliente inexistente)', () => {
     assert.equal(s.latest.length, 1, 'o painel só mostra clientes vivos; a dívida órfã não tem dono visível');
     assert.equal(s.recent.every((r) => typeof r.client === 'string'), true, 'nenhum erro, nenhum aviso: só números');
     // ver tests/svc/backup-restore.test.mjs: o mesmo dado faz readBackup lançar INVALID
+    // D-01: o painel NUNCA dependeu de saveDebt com cliente inexistente — ele só lê o banco. Quem escreve por
+    // service hoje seria barrado; o que alimenta estes números é exclusivamente o dado herdado injetado acima.
+    await assert.rejects(DV.saveDebt('cliente-que-nao-existe', novaDividaParaSalvar({ description: 'Tentativa', principal: 100000, rate: 1000, date: desdeHoje(-1), due: desdeHoje(5) })),
+      (e) => e.code === 'NO_CLIENT');
+    const depois = await stats();
+    assert.deepEqual([depois.debts, depois.principal, (await db.getAll('debts')).length], [2, 300000, 2],
+      'a tentativa recusada não mexeu em nenhum número do painel');
   });
 });
 

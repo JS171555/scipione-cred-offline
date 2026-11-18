@@ -22,7 +22,9 @@ export function form(U,c,d,back){
   const btn=h('button',{class:'primary',type:'submit'},d?'Salvar alterações':'Cadastrar dívida');
   const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');btn.disabled=true;
     const g=k=>f.elements[k].value.trim();
-    try{await S.saveDebt(c.id,{description:g('description'),principal:M.cents(g('principal')),rate:M.parseRate(g('rate')),date:g('date'),due:g('due'),notes:g('notes')},d);back()}
+    // `c` pode ser undefined em dívida órfã legada (dado anterior ao fechamento de D-01):
+    // sem o `?.` o submit estourava TypeError cru em vez da mensagem do serviço.
+    try{await S.saveDebt(c?.id,{description:g('description'),principal:M.cents(g('principal')),rate:M.parseRate(g('rate')),date:g('date'),due:g('due'),notes:g('notes')},d);back()}
     catch(x){for(const[k,m]of Object.entries(x.errs||{}))fe[k].textContent=m;err.textContent=x.message}finally{btn.disabled=false}}},
     h('h2',{},'Dados da dívida'),
     h('div',{class:'form-grid'},
