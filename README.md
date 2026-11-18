@@ -263,6 +263,29 @@ O `frame-ancestors` **só existe nesse cabeçalho**: a CSP que endurece o docume
 
 A variável `APICPF_API_KEY` é opcional: sem ela o aplicativo funciona normalmente e a validação de CPF fica manual. Ela é usada somente pela função serverless `api/cpf.js` e nunca é enviada ao navegador. A Vercel entrega o site por HTTPS, contexto exigido pelo service worker e pelo Web Crypto.
 
+#### Variáveis de ambiente
+
+Todas são lidas **a cada requisição**, só no lado servidor (`api/cpf.js:15-17`); não existe configuração de ambiente em código de navegador. Os placeholders estão em `.env.example`, e o valor padrão de cada uma está na coluna ao lado.
+
+| Variável | Default | O que controla |
+| --- | --- | --- |
+| `APICPF_API_KEY` | vazio → `503` (`api/cpf.js:108`,`:109`) | chave da APICPF; sem ela a validação de CPF fica manual |
+| `SCIPIONE_ALLOWED_ORIGINS` | vazio = só o host da requisição (`api/cpf.js:17`) | origens extras aceitas na checagem de `Origin`/`Referer` (previews fixos, outro domínio) |
+| `CPF_QUOTA_WINDOW_MS` | 60000 (`api/cpf.js:16`) | tamanho da janela fixa da cota, em ms |
+| `CPF_QUOTA_PER_IP` | 30 (`api/cpf.js:16`) | requisições por IP dentro da janela |
+| `CPF_QUOTA_PER_INSTANCE` | 300 (`api/cpf.js:16`) | requisições por instância dentro da janela; é o trava-custos quando o IP é rotacionado |
+
+> **A cota é por instância aquecida, não distribuída** (`api/cpf.js:19-22`): cada região e cada instância contam o próprio teto, e um IP novo a cada requisição circorna o limite por IP — nesse cenário quem segura o abuso é o `CPF_QUOTA_PER_INSTANCE`, e o estouro devolve `429` com `Retry-After` (`api/cpf.js:100`). **O teto real de custo não mora no repositório**: é uma regra de rate limit da WAF da Vercel, criada no dashboard. Em `vercel.json` a configuração por código (`routes[].mitigate`) só aceita as ações `challenge` e `deny` — rate limit e `log`/`bypass`/`redirect` não são configuráveis assim, e o SDK `@vercel/firewall` é dependência externa, proibida pelo projeto.
+
+Passos no dashboard — **ainda não executados; a regra precisa ser criada à mão**:
+
+1. No dashboard da Vercel, abra o projeto e entre em **Firewall** na barra lateral › **Configure** › **+ New Rule**.
+2. Em **If**, escolha **Request Path** › **Equals** › `/api/cpf`.
+3. Em **Then**, escolha **Rate Limit** e o algoritmo **Fixed Window**.
+4. Ajuste **Time Window** para `60s` e **Request Limit** para `60`. No plano Hobby há 1 regra por projeto, chaves IP e JA4 Digest e janela fixa entre 10 s e 10 min.
+5. Salve primeiro com a ação **Log** (não bloqueia nada), observe o tráfego da regra na página do Firewall por ~10 minutos e só então troque a ação final para **Too Many Requests (429)**.
+6. **Save Rule** › **Review Changes** › **Publish**.
+
 ### GitHub Pages
 
 1. Abra **Settings › Pages** no repositório.
@@ -279,7 +302,8 @@ O arquivo `.nojekyll` mantém os arquivos servidos exatamente como estão. Todos
 - A senha do cofre não é armazenada. Ela deriva uma chave (KEK) via PBKDF2-SHA256 com 600.000 iterações (`src/security/crypto.js:4`,`:6`); essa chave protege a DEK, que cifra os registros com AES-GCM 256 (`crypto.js:9-11`). Isso descreve o mecanismo, não é uma garantia de segurança por si: o que a cifra protege é o **conteúdo** de `clients`, `debts`, `documents`, `history` e `blobs` em repouso no IndexedDB.
 - Para permitir índices e ordenação, poucos metadados (`id`, `createdAt` e `clientId`) permanecem em claro; o conteúdo dos registros é cifrado (`src/services/records.js:1`,`:7`). Também ficam em claro, por design: os parâmetros do cofre em `meta/vault` (`salt`, `iv`, `wrapped`, `iter` — `crypto.js:11`, gravado em `src/security/auth.js:21`), o contador de tentativas em `meta/guard` (`auth.js:26`-`:32`) e as preferências `settings/idleMinutes` e `settings/dueWindow` (`auth.js:21`,`:33`; `src/services/settings.js:2`,`:3`). Um dump do banco revela, portanto, quantidade de clientes, UUIDs, datas e o grafo dívida↔cliente, mas não nomes, CPFs, valores nem anexos.
 - Enquanto há sessão viva, a DEK é persistida como `CryptoKey` em `meta/session` para que a mesma aba reabra sem pedir senha de novo (`src/security/auth.js:55`), e esse registro é apagado no bloqueio e quando a sessão é inválida (`auth.js:43`,`:46`,`:67`). A chave é marcada como não extraível (`crypto.js:2`), o que impede ler os bytes da chave — não impede usá-la para decifrar a partir de código da mesma origem. O `localStorage` guarda só a configuração pública do cliente OAuth (`clientId`, `projectId`, origens), sem segredo (`src/services/google-drive.js:18`,`:45`; `src/config/google.js:4`-`:10`).
-- O cofre não tem conta remota nem telemetria, e clientes, dívidas, documentos e histórico não são enviados a servidores. A exceção é o CPF digitado no cadastro: quando online e com a chave configurada, ele é enviado **apenas como 11 dígitos** à função serverless `/api/cpf` (`src/services/apicpf.js:7`,`:24`), que o repassa à APICPF (`api/cpf.js:17`,`:25`) e devolve nome, nascimento e gênero — que voltam de terceiro e só preenchem campos vazios (`apicpf.js:33`-`:35`; `src/ui/clients.js:87`,`:88`). A chave fica apenas no servidor; veja `docs/apicpf.md`. O CEP digitado segue o mesmo desenho: vai só o CEP ao ViaCEP e voltam rua, bairro, cidade e UF (`src/services/viacep.js:3`,`:17`; `src/ui/clients.js:106`). Se você ativar o backup no Google Drive, o ZIP gerado sobe para a sua conta Google (`src/services/google-drive.js:194`) — cifrado apenas se a criptografia com senha foi marcada.
+- O cofre não tem conta remota nem telemetria, e clientes, dívidas, documentos e histórico não são enviados a servidores. A exceção é o CPF digitado no cadastro: quando online e com a chave configurada, ele é enviado **apenas como 11 dígitos** (`src/services/apicpf.js:7`,`:8`) **no corpo de um POST** à nossa função serverless `/api/cpf` (`src/services/apicpf.js:28-33`) — o número não vai mais na URL, que é justamente a parte vista por log de intermediário, histórico do navegador e APM. A função repassa a consulta à APICPF (`api/cpf.js:114`) e **nessa perna a URL continua com `?cpf=`**: o contrato da provedora é GET com query string e não é nosso para mudar. Nome, nascimento e gênero voltam de terceiro, chegam normalizados (`src/services/apicpf.js:38-42`) e só preenchem campos vazios (`src/ui/clients.js:87`,`:88`). A chave fica apenas no servidor; veja `docs/apicpf.md`. O `GET /api/cpf?cpf=` legado segue aceito, para aparelhos com bundle pré-cacheado, e está documentado como deprecado (`api/cpf.js:71-72`). O CEP digitado segue o mesmo desenho: vai só o CEP ao ViaCEP e voltam rua, bairro, cidade e UF (`src/services/viacep.js:3`,`:17`; `src/ui/clients.js:106`). Se você ativar o backup no Google Drive, o ZIP gerado sobe para a sua conta Google (`src/services/google-drive.js:194`) — cifrado apenas se a criptografia com senha foi marcada.
+- O `/api/cpf` **não exige credencial**: o que ele aplica hoje são o transporte no corpo, a checagem de `Origin`/`Referer` (`api/cpf.js:48`, resposta `403` em `:98`) e a cota por IP e por instância (`api/cpf.js:58`, resposta `429` com header `Retry-After` em `:100`). `Origin` é controlado pelo cliente, então isso inibe uso embarcado em outro site — **não é autenticação**, e um ataque deliberado com header ausente ou spoofado continua dependendo da regra de rate limit da WAF, criada no dashboard da Vercel (ver Deploy › Vercel).
 - **Não há recuperação de senha.** Se a senha do cofre for esquecida, os dados não poderão ser abertos. Use uma senha forte e mantenha backups.
 - A criptografia protege os dados em repouso. Ela não protege contra aparelho comprometido, malware ou acesso ao app desbloqueado.
 - O atraso após tentativas incorretas é local e contornável; a defesa principal é o custo do PBKDF2 e uma senha forte.
@@ -311,6 +335,8 @@ Os testes usam apenas Node.js, sem dependências externas. Comando canônico:
 node --test "tests/**/*.test.mjs"
 ```
 
+Estado medido da suíte com esse comando, nesta branch e em Node `v22.23.4`: **497 casos, 55 suítes, 0 falhas, 0 cancelados, ~10,7 s** — 28 arquivos, 4.509 linhas, 1.180 chamadas de `assert`. O conjunto fica verde nos dois fusos da CI (`TZ=America/Sao_Paulo` e `TZ=UTC`). Antes desta correção eram 461 casos; os 36 novos estão em `tests/apicpf.test.mjs` (20 → 40), `tests/unit/apicpf-client.test.mjs` (11 → 15), `tests/svc/debts.test.mjs` (17 → 23) e `tests/contracts/docs-refs.test.mjs` (6, arquivo novo).
+
 Duas variantes são proibidas, e as duas foram medidas em Node `v22.23.4`:
 
 - `node --test tests` (o diretório, sem glob) **falha** — `Cannot find module '…/tests'`, exit 1.
@@ -320,7 +346,9 @@ Em lugar do comando cru, `node scripts/run-tests.mjs` roda o mesmo conjunto com 
 
 O `push` e os pull requests passam por `.github/workflows/ci.yml`, com três jobs: `estatico`, `testes` (matriz de fuso `America/Sao_Paulo` e `UTC`, bloqueante, com artefatos TAP/JUnit/cobertura) e `smoke-navegador` — este último `continue-on-error: true`, disparado apenas por `workflow_dispatch`, que hoje **não executa nenhum teste de navegador**: serve para detectar o browser do runner e registrar o roteiro do que ainda falta virar teste. O workflow não faz deploy e não instala dependências.
 
-A suíte cobre aritmética monetária, validadores de CPF/CNPJ, máscara e composição de endereço, situação de vencimento e busca, criptografia do cofre, formato de backup/restauração e a função serverless da APICPF. **Não existe smoke test de ponta a ponta da interface**: cobertura de UI em navegador real é avaliação futura, não entrega atual. Tudo roda em Node puro, com harness próprios em `tests/helpers/` (IndexedDB e DOM falsos, mock de `fetch`); nenhum teste abre um navegador.
+A suíte cobre aritmética monetária, validadores de CPF/CNPJ, máscara e composição de endereço, situação de vencimento e busca, criptografia do cofre, formato de backup/restauração e a função serverless da APICPF. **Não existe smoke test de ponta a ponta da interface**: cobertura de UI em navegador real é avaliação futura, não entrega atual. Tudo roda em Node puro, com harness próprios em `tests/helpers/` (IndexedDB e DOM falsos, mock de `fetch`); nenhum arquivo em `tests/` abre um navegador.
+
+O teste de navegador que exercita a **função serverless real** é **manual e está fora da CI**: um shim `node:http` serve `api/cpf.js` com o upstream da APICPF stubado em memória, e nada disso é arquivo versionado nem executado por `node --test`. Nesta rodada ele passou em 23/23 verificações (POST com corpo e nenhuma query na URL da função, preenchimento de nome/nascimento/gênero, `403` em origem estrangeira, `415` em content-type errado e, no caminho da dívida de cliente excluído, mensagem legível com o store `debts` inalterado).
 
 ## Compatibilidade
 

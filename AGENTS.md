@@ -50,7 +50,7 @@ A coluna da direita **não é opcional**: são os arquivos que mudam JUNTO (regr
 |---|---|---|
 | Uma tela (layout/fluxo) | `src/ui/<tela>.js` (mapa em `docs/PROJECT_MAP.md`) | `main.js:65` se novo destino; `shell.js:28-36` se novo item; `sw.js:2` |
 | Campo do formulário de cliente | `src/ui/clients.js:59-68` + payload `src/ui/clients.js:46` | `src/services/clients.js:5` (`LABEL`) e `:7-14` (`validate`), perfil `src/ui/clients.js:170`, busca `src/services/search.js:3-4`, `sw.js:2` |
-| Campo do formulário de dívida | `src/ui/debts.js:28-35` | `src/services/debts.js:4` (`rec` — **whitelist**: fora dela o campo é descartado em silêncio), `:3`, `:7-13`, `src/ui/debtspage.js:17-20` |
+| Campo do formulário de dívida | `src/ui/debts.js:31-37` | `src/services/debts.js:4` (`rec` — **whitelist**: fora dela o campo é descartado em silêncio), `:3`, `:7-13`, **guarda de cliente** `:20`, submit tolerante a cliente ausente `src/ui/debts.js:27`, `src/ui/debtspage.js:17-20` |
 | Um store ou índice | `src/db/idb.js:2-9` (acrescentar função no fim; nunca editar as antigas, `idb.js:1`) | `src/export/backup-format.js:5` (`LISTS`), `src/export/backup.js:5-9,15-18`, `docs/DATABASE.md`, `sw.js:2` |
 | Regra de vencimento | `src/domain/due.js:5` | `src/services/dashboard.js:5-6`, `src/ui/debtspage.js:11,16-17`, `src/ui/dashboard.js:13-16`, janela `src/services/settings.js:2`, testes de `due` |
 | Moeda / R$ / juros | `src/domain/money.js:3-9` | `src/services/debts.js:5-6`, telas que importam `money.js`, colunas do Excel `src/export/reports.js:16-18` |
@@ -61,7 +61,7 @@ A coluna da direita **não é opcional**: são os arquivos que mudam JUNTO (regr
 | Arquivo novo no app | o arquivo em `src/` | **`sw.js:2`: adicionar a `FILES` E incrementar `V`** (`sw.js:1`) |
 | `manifest.json` (nome, ícones, cor) | `manifest.json:1` | `index.html:4,6-7`, `sw.js:2`, `docs/screenshots/`, `README.md` |
 | CSP e headers | `index.html:3` (meta) e `vercel.json:3-60` | `docs/SECURITY.md`; **EXIGE AUTORIZAÇÃO** (item 5) |
-| Função `/api/cpf` | `api/cpf.js` | `src/services/apicpf.js:24-41` (contrato), `.env.example:3`, `docs/apicpf.md`, `docs/API.md`, `tests/apicpf.test.mjs` |
+| Função `/api/cpf` | `api/cpf.js` | `src/services/apicpf.js:28-45` (POST com corpo + parse), `.env.example:3,10,15-21` (chave, allowlist de origem, cota), `sw.js:2` (**`api/cpf.js` não está em `FILES`**; os módulos do cliente sim), `docs/apicpf.md`, `docs/API.md`, `tests/apicpf.test.mjs` (40 casos) |
 | Ícone da UI | `src/ui/icons.js:2-41` | `shell.js:5-9` se quiser auto-aplicação por rótulo; `sw.js:2`; nome errado cai em `info` (`icons.js:47`) |
 | Token de cor | `css/app.css:5-19` | literais que fura o token: `#080808` em `css/ui.css:13,28,70,195,391,412`, hover `#272420` em `ui.css:96,121,133`, `theme-color` `index.html:4`, `manifest.json:1` |
 | Breakpoint | `css/ui.css` (`:3` = contrato das faixas; `:500` tablet 768, `:519` desktop 1100, `:537` formulários 720, `:554` config 1200) | `docs/README.md:28`, `sw.js:2`; **não** misture `max-width:X` com `min-width:X` no mesmo componente (`ui.css:130` vs `:181`) |
@@ -73,11 +73,11 @@ A coluna da direita **não é opcional**: são os arquivos que mudam JUNTO (regr
 | Navegação / menu | `src/ui/shell.js:28-36` | mapa `data-page→data-k` `shell.js:53`, `css/ui.css:500,519`, `main.js:65` |
 | Fotografia do cliente | `src/services/clients.js:20-22` | `src/ui/kit.js:8-16` (`filePicker`), `.media-field` `css/ui.css:164-186`, `src/files/process.js` (`force:true,maxSide:512`), `src/ui/avatar.js` |
 | Busca de clientes | `src/services/search.js:3-4` | `src/ui/clientlist.js:22-28`, `src/ui/dashboard.js:40` |
-| Validação de CPF/CNPJ | `src/domain/validators.js:2-5` | `src/services/clients.js:10-11` e `api/cpf.js:17` — **compartilhado com o servidor**: não adicione dependência de browser aqui |
+| Validação de CPF/CNPJ | `src/domain/validators.js:2-5` | `src/services/clients.js:10-11` e `api/cpf.js:106` — **compartilhado com o servidor**: não adicione dependência de browser aqui |
 
 ## 3. Verificar dependências
 
-Grafo real: **74 nós, 204 arestas internas (107 de app + 97 de testes e scripts), 0 ciclos, 0 imports
+Grafo real: **74 nós, 205 arestas internas (107 de app + 98 de testes e scripts), 0 ciclos, 0 imports
 quebrados**; os únicos especificadores externos são `node:*` em `tests/` e `scripts/` — nenhum em código de
 aplicação. A contagem evoluiu porque o número de arquivos de teste cresce nesta branch; a v1 do extrator
 (47 nós/57 arestas) **estava subcontada** porque a regex ancorava no início da linha e perdia imports
@@ -85,7 +85,9 @@ múltiplos na mesma linha (`src/main.js:3`, `src/ui/clients.js:1`, `src/ui/tools
 Números canônicos: `docs/ARCHITECTURE.md` §2. Reconstruir:
 
 ```sh
-python3 /home/ubuntu/audit/deps.py     # fora do repo: artefato da auditoria, não é entregável
+node scripts/check-static.mjs --only=deps   # grafo/imports: checagem versionada no repo
+# (o extrator ad hoc usado na auditoria não foi entregável e não está aqui; o que
+# existe é a checagem que resolve todo especificador relativo e reclama de quebrado)
 for f in $(find api src tests -type f \( -name '*.js' -o -name '*.mjs' \) ! -name sw.js); do  # uma aresta por linha
   grep -oE "['\"]\.\.?/[^'\"]+['\"]" "$f" | tr -d "'\"" | while read -r d; do
     printf '%s -> %s\n' "$f" "$(realpath -m --relative-to=. "$(dirname "$f")/$d")"; done
@@ -118,7 +120,7 @@ nova ⇒ **PARE**.
 | Vencimento: `n<0` vencida, `0≤n≤janela` prestes, resto em dia; janela default 7 | `src/domain/due.js:5`, `src/services/settings.js:2` | Não mudar limiar sem atualizar `src/ui/debtspage.js:16-17` e `src/ui/dashboard.js:13-16` |
 | CPF/CNPJ por dígito verificador, únicos por cadastro | `src/domain/validators.js:2-5`, `src/services/clients.js:10-11` | Não trocar por regex de máscara; a unicidade é checada fora da transação (item 4 da tabela de armadilhas) |
 | Excluir cliente apaga dívidas + documentos + blobs + histórico + cliente em **uma** transação | `src/services/clients.js:31-35` → `db.batch` (`src/db/idb.js:27-30`) | Não excluir `clients` sem os demais; não esquecer os `blobs` (`clients.js:33,35`) |
-| `saveDebt` **aceita `clientId` inexistente** (dívida órfã possível) | `src/services/debts.js:14-16` | Não "consertar" de carona: é achado registrado em `docs/ROADMAP.md`; mexer aqui é mudança de regra de negócio |
+| `saveDebt` **recusa cliente inexistente** com `code:'NO_CLIENT'` | `src/services/debts.js:20` (ordem: `validate()` em `:15`, guarda em `:20`) | Não relaxar a guarda e não reescrever as dívidas órfãs já gravadas — isso é migração e **EXIGE AUTORIZAÇÃO**. E não confunda com constraint no banco: `deleteDebt` (`:29`) e `applyBulk` (`:38`) ainda gravam histórico com `clientId` legado quebrado |
 | `history` é append-only; só a cascata do cliente apaga evento | `src/services/records.js:10`, `src/services/clients.js:34` | Não criar "limpar histórico"; não reescrever `type`/`detail` antigos |
 | Duplicidade de anexo checada por SHA-256 **fora** da transação | `src/services/clients.js:40`, `src/files/process.js:7` | Não mover a checagem para dentro do `batch` sem teste de regressão |
 | Só `id`/`createdAt`/`clientId` ficam em claro; o resto vai cifrado em `data` | `src/services/records.js:4,7` | Não promover campo novo para o envelope em claro sem análise em `docs/SECURITY.md` |
@@ -132,7 +134,7 @@ aleatória, não extrativel, embrulhada pela KEK derivada da senha; a senha nunc
 por gravação**, prefixado ao ciphertext (`crypto.js:17-18`). Renderização 100% por `createElement` com o
 primitivo `h` (`src/main.js:5`): **zero** ocorrências de `innerHTML`, `outerHTML`, `insertAdjacentHTML`,
 `document.write`, `eval`, `srcdoc` ou `javascript:` no app. Nenhum segredo no cliente: `APICPF_API_KEY` só é
-lida no servidor (`api/cpf.js:19`) e `.env.example:3` está vazia; `client_secret` é descartado no import
+lida no servidor (`api/cpf.js:108`) e `.env.example:3` está vazia; as variáveis de cota e `SCIPIONE_ALLOWED_ORIGINS` também só existem no servidor e são lidas **a cada requisição** (`api/cpf.js:15-17`), sem cache além dos contadores da própria instância (`api/cpf.js:24-25`); `client_secret` é descartado no import
 (`src/services/google-drive.js:41`) e bloqueado em `.gitignore:5-8`; **token do Drive só em memória**
 (`google-drive.js:14,101-103`, zerado em `:19,:115,:139`) com escopo mínimo `drive.file` (`:8`). Headers de
 produção em `vercel.json:3-60` (`sw.js` com `no-store` + `Service-Worker-Allowed: /`, `nosniff`, `no-referrer`,
@@ -159,7 +161,7 @@ Branch: `git switch -c <tipo>/<assunto>` a partir de `main`; trabalhe na branch 
 `main`** (decisão humana) e **não faça deploy** — não há CI de publicação e ela é manual (`README.md:230-248`).
 
 **Regra dos 4 toques.** Mudou arquivo pré-cacheado? 1) edite o arquivo, 2) confira se ele está em `FILES`
-(`sw.js:2`), 3) **adicione o caminho** se não estiver, 4) **increment `V`** (`sw.js:2`, hoje `sc-v69`).
+(`sw.js:2`), 3) **adicione o caminho** se não estiver, 4) **increment `V`** (`sw.js:2`, hoje `sc-v70`; `FILES` tem 52 entradas e **não** lista `api/cpf.js`).
 Violações reais: `ef4b96f`, `ff247af`, `922f584` (todos em `src/config/google.js`) e `ba6227b` (`css/ui.css` +
 `src/ui/clients.js`) mexeram em arquivos listados em `FILES` **sem** tocar `sw.js`/`V`; como o `fetch` é
 cache-first puro e não escreve em runtime (`sw.js:5`), o app instalado serve o arquivo velho indefinidamente.
@@ -191,7 +193,7 @@ Sob fuso: `TZ=America/Sao_Paulo node --test "tests/**/*.test.mjs"` e depois `TZ=
 
 Sequência mínima **antes de qualquer PR**, toda ela verde:
 
-1. `node scripts/check-static.mjs` — essenciais, sintaxe, `V`/`FILES` vs disco, JSON, grafo, segredos.
+1. `node scripts/check-static.mjs` — essenciais, sintaxe, `V`/`FILES` vs disco, JSON, grafo, segredos e **docs** (citações `arquivo:linha` da documentação; 7 grupos em `scripts/check-static.mjs:23`).
 2. `node scripts/run-tests.mjs` — descobre os testes, roda sem shell, grava `artifacts/results.tap` e **relê** o TAP.
 3. `node --test "tests/**/*.test.mjs"` — o comando canônico, para ver o sumário com seus próprios olhos.
 4. `find api src tests scripts vendor sw.js -name '*.js' -o -name '*.mjs' | xargs -n1 node --check`.
@@ -246,6 +248,7 @@ de usuários. 10. Não publicar segredos. 11. Não fazer deploy. 12. Não fazer 
 ## Pare e peça autorização quando…
 
 - Criar, remover ou alterar store/índice/keyPath (`src/db/idb.js:2-9`) — qualquer migração de schema.
+- Reatribuir ou apagar **dívidas órfãs já gravadas** (`clientId` que não casa com nenhum `clients.id`): é retrofit de dados em `MIGRATIONS` (`src/db/idb.js:1,14`) com `DB_VERSION` nova e possível bump de `FORMAT` (`src/export/backup-format.js:5`). A guarda de escrita (`src/services/debts.js:20`) **não** alcança o legado — quadro de leitura em `docs/DATABASE.md` §6.1.
 - Tocar iterações, algoritmo, formato do envelope, tamanho de salt/IV ou o registro de `meta`
   (`src/security/crypto.js:4-18`, `src/security/auth.js:21,55`).
 - Adicionar dependência (npm, CDN, vendor, framework) — inclusive "só para testes".
@@ -301,6 +304,13 @@ Fan-in verificado: `validators.js` 9 · `icons.js` 9 · `auth.js` 9 · `money.js
   vencimento no app. **`settings` e `meta` não passam por `enc()`** (`src/services/settings.js:3`,
   `src/security/auth.js:21`): ficam em texto claro.
 - **Doc ≠ código:** `docs/README.md:28` diz "barra inferior até 719px"; o código usa 768px (`css/ui.css:500`).
+- **`/api/cpf` tem ordem fixa de checagens** — método (`api/cpf.js:94`) → content-type (`api/cpf.js:95-96`) → origem (`api/cpf.js:98`) → cota (`api/cpf.js:99-100`) → corpo (`api/cpf.js:102-106`) → chave (`api/cpf.js:108`) → upstream (`api/cpf.js:114`). Requisição de teste que pula uma etapa recebe o **código de erro de outra** e o caso parece passar por outro motivo. A cota é estado de módulo por design (instância aquecida): para isolar contadores existe `__quota.reset()` (`api/cpf.js:138`), que é gancho de teste, não API do app.
+- **A saída para a APICPF continua `GET` com o CPF na query string** (`api/cpf.js:114`): contrato do provedor, não escolha nossa. O ganho de privacidade é entre o navegador e a *nossa* função (URL em log de intermediário, histórico, APM). Não converter para POST "para melhorar" — o contrato é provado em `tests/apicpf.test.mjs:578`.
+- **`saveDebt` recusa cliente inexistente com `code:'NO_CLIENT'`** (`src/services/debts.js:20`), sempre **depois** de `validate()` (`:15`) — a ordem é asserida (`tests/svc/debts.test.mjs:128`), porque erro de campo tem de continuar voltando em `errs` para a UI pintar por campo. Precisa de dívida órfã no teste? Escreva direto na store (`rec.enc` + `db.batch`, como em `tests/svc/debts.test.mjs:153`): não há mais caminho de serviço que produza esse estado.
+- **O formulário de dívida pode receber cliente `undefined`** em dado legado: a página Dívidas resolve o cliente com `cs.find(...)` (`src/ui/debtspage.js:16`) e repassa o resultado a `form(U,c,d,reopen)` (`src/ui/debtspage.js:21`) — que pode ser `undefined`. Por isso `src/ui/debts.js:27` usa `c?.id`; sem o `?.` o submit estoura `TypeError` cru no parágrafo de erro e a mensagem do serviço nunca aparece. Não "simplificar" de volta para `c.id`.
+- **Não existe rate limit configurável em `vercel.json`**: em `routes[].mitigate` só cabem `challenge` e `deny`; `log`, `bypass`, `redirect` e rate limit não são suportados como código. O teto real de custo é regra de WAF criada no dashboard (portanto fora deste repositório) e a cota de `api/cpf.js:58-69` conta **por instância aquecida e por região** — não é distribuída.
+- **Variáveis de cota e origem são lidas a cada requisição** (`api/cpf.js:15-17`): `CPF_QUOTA_WINDOW_MS`, `CPF_QUOTA_PER_IP`, `CPF_QUOTA_PER_INSTANCE`, `SCIPIONE_ALLOWED_ORIGINS` (`api/cpf.js:17`). Mudar no deploy vale na hora, sem reiniciar a função; o default do código só entra quando o valor não é inteiro positivo.
+- **A documentação virou checagem de CI**: `node scripts/check-static.mjs --only=docs` reprova citação para arquivo que não está no repositório, linha acima do tamanho do arquivo e caminho absoluto de máquina específica (origem em `scripts/check-static.mjs:402`, contrato em `tests/contracts/docs-refs.test.mjs:43`). Referencie apenas arquivos versionados. Exceção declarada: `docs/auditoria/**` é evidência congelada em `e78d776` e não tem checagem de faixa (`scripts/check-static.mjs`, filtro `isento`) — os documentos canônicos têm.
 - **`icon('nome-errado')` não lança**: cai em `info` (`src/ui/icons.js:47`); e `setDueWindow` grava qualquer
   valor sem validar (`src/services/settings.js:3`), o que degrada o cálculo de `status()` (`src/domain/due.js:5`).
 

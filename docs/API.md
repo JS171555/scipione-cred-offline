@@ -1,6 +1,6 @@
 # SCIPIONE CRED — API.md (catálogo de interfaces)
 
-Referência das interfaces reais do projeto. Toda entrada foi conferida no código (`src/`, `api/cpf.js`) e é citada como `arquivo:linha` da definição. Fontes secundárias: `/home/ubuntu/audit/2-dados-negocio.md` (dados e serviços) e `/home/ubuntu/audit/6-integracoes-infra.md` (serverless e integrações). O relatório `/home/ubuntu/audit/4-backup-exportacao.md` **não existe** — a seção 7 saiu só do código (`src/export/*.js`) e de `tests/backup.test.mjs`. **[verificado]** = executado em Node 22 contra o módulo. **NÃO CONFIRMADO** = sem evidência no repositório. Total: **137 exports** (135 na seção 4 + `default` de `api/cpf.js` na seção 2 + `GOOGLE_OAUTH` nas seções 3 e 9). Todos os exemplos são sintéticos: nenhum CPF, nome, e-mail ou endereço real.
+Referência das interfaces reais do projeto. Toda entrada foi conferida no código (`src/`, `api/cpf.js`) e é citada como `arquivo:linha` da definição. Fontes secundárias: `docs/auditoria/2-dados-negocio.md` (dados e serviços) e `docs/auditoria/6-integracoes-infra.md` (serverless e integrações). O relatório `docs/auditoria/4-backup-exportacao.md` **não existe** — a seção 7 saiu só do código (`src/export/*.js`) e de `tests/backup.test.mjs`. **[verificado]** = executado em Node 22 contra o módulo. **NÃO CONFIRMADO** = sem evidência no repositório. Total: **138 exports** (135 na seção 4 + `default` e `__quota` de `api/cpf.js` na seção 2 + `GOOGLE_OAUTH` nas seções 3 e 9). Todos os exemplos são sintéticos: nenhum CPF, nome, e-mail ou endereço real.
 
 ---
 
@@ -10,8 +10,8 @@ Referência das interfaces reais do projeto. Toda entrada foi conferida no códi
 |---|---|
 | ES Modules puros: sem transpile, sem bundler, sem tipos | `package.json:1` = `{"type":"module","private":true}`; `<script type="module" src="src/main.js">` em `index.html:11` |
 | Zero dependências instaladas; a única lib (`fflate`) é commitada e lida de `globalThis` | `package.json:1`, `vendor/fflate.min.js`, `src/export/lib.js:2-4` |
-| Sem `version` e sem `scripts` no `package.json`: não há `npm test` nem `npm run build` | `package.json:1`; laço manual em `docs/README.md:22` |
-| Um módulo expõe API **só por named exports**; a única exceção é `api/cpf.js`, `export default` exigido pela Vercel | `api/cpf.js:13` |
+| Sem `version` e sem campo `scripts` no `package.json`: não existe `npm test` nem `npm run build`. As ferramentas existem como arquivos chamáveis diretamente — `scripts/check-static.mjs` e `scripts/run-tests.mjs` —, invocados por `node …` e pela CI (§10) | `package.json:1`; forma canônica em `docs/README.md:22` |
+| Um módulo expõe API **só por named exports**; a única exceção é `api/cpf.js`, `export default` exigido pela Vercel — que exporta também `__quota`, gancho de teste (`api/cpf.js:138`), não API do app | `api/cpf.js:93` |
 | Re-export por repasse | `export{blobBytes}` (`src/services/clients.js:3`), `export{readBackup}from'./backup-format.js'` (`src/export/backup.js:3`) |
 | Constantes em SCREAMING | `MAXR` (`money.js:2`), `ITER` (`crypto.js:4`), `FORMAT`/`LISTS` (`backup-format.js:5`), `CATS` (`clients.js:4`), `DB_VERSION` (`idb.js:10`), `GOOGLE_OAUTH` (`config/google.js:4`) |
 | Erro de domínio = `Error` com propriedade extra: `{code}` nas integrações, `{errs}` nos services de escrita | `src/services/viacep.js:5`, `src/services/clients.js:18` |
@@ -24,35 +24,48 @@ Referência das interfaces reais do projeto. Toda entrada foi conferida no códi
 
 ## 2. API pública da função serverless `/api/cpf`
 
-Arquivo `api/cpf.js` (48 linhas). A rota `/api/cpf` vem do layout File System Functions da Vercel; `vercel.json` não tem bloco `functions` — **NÃO CONFIRMADO** pelo repositório.
+Arquivo `api/cpf.js` (**138 linhas**; era um proxy de 48 linhas e foi reescrito na branch `fix/api-cpf-exposure-and-debt-integrity`). A rota `/api/cpf` vem do layout File System Functions da Vercel; `vercel.json` não tem bloco `functions` — **NÃO CONFIRMADO** pelo repositório. O `handler` está em `api/cpf.js:93` e a ordem das barreiras é sempre a mesma: método → `content-type` → origem → cota → corpo/validação → chave → provedor (`:94-114`).
 
 | Item | Contrato | Evidência |
 |---|---|---|
-| Método | só `GET`; `req.method!=='GET'` → 405 (inclui `HEAD`, `OPTIONS`, `POST`) | `api/cpf.js:14` |
-| Parâmetro | `?cpf=<qualquer string>`, lido por `new URL(req.url||'/','https://local.invalid').searchParams.get('cpf')` | `api/cpf.js:15-16` |
-| Sanitização | `digits()` remove tudo que não é dígito antes de qualquer uso | `api/cpf.js:16`, `src/domain/validators.js:1` |
-| Corpo da requisição | nunca é lido | `api/cpf.js:13-48` |
-| Auth / origem / rate limit | **inexistentes**: nada é checado antes da leitura da env | `api/cpf.js:13-20`; ausência em `vercel.json:1-62` |
-| Timeout / abort | `TIMEOUT=8000` ms + `AbortController`; `clearTimeout` no `finally` | `api/cpf.js:4,22-23,45-46` |
-| Env exigida | `APICPF_API_KEY` (nome exato; única env do projeto). Ausente → 503 | `api/cpf.js:19`, `.env.example:3` |
-| Header ao provedor | `X-API-KEY: <APICPF_API_KEY>`, `Accept: application/json` | `api/cpf.js:26` |
+| Método | `GET` (legado) e `POST`; qualquer outro → `405` (inclui `HEAD`, `OPTIONS`, `PUT`) | `api/cpf.js:94` |
+| Corpo da requisição (POST — caminho do app) | `{"cpf":"52998224725"}`; `cpf` aceito como **string ou número** (`:81-82`, `:90`), sempre por `digits()`. JSON imprestável ou sem `cpf` → `422` (`:88-90`) | `api/cpf.js:78-91` |
+| Teto de corpo | `MAX_BODY=1024` bytes; corpo em **stream** é interrompido no meio e devolve `413` | `api/cpf.js:13,85,103` |
+| Parâmetro (GET legado — **deprecado**) | `?cpf=<qualquer string>` lido por `new URL(req.url\|\|'/','https://local.invalid').searchParams.get('cpf')`; continua aceito porque bundles pré-cacheados chamam a forma antiga (comentário `:71-72`) | `api/cpf.js:74-77` |
+| `content-type` | `POST` sem `application/json` → `415`, checagem feita **antes** de ler qualquer byte do corpo | `api/cpf.js:95-96` |
+| Sanitização | `digits()` remove tudo que não é dígito antes de qualquer uso; 11 dígitos + DV obrigatórios antes de qualquer chamada paga | `api/cpf.js:106`, `src/domain/validators.js:1` |
+| Auth / origem / rate limit | **sem autenticação de chamador**. `Origin`/`Referer` comparados ao `host` da requisição + allowlist `SCIPIONE_ALLOWED_ORIGINS` → `403`; **header ausente deixa o pedido passar** (`:50`) — não é autenticação (`:44-47`). Cota de janela fixa **em memória, por instância aquecida** (`:19-22`): por IP e por instância | `api/cpf.js:48-56,98`; `:58-69,99-100`; ausência de regra em `vercel.json:1-62` |
+| IP do chamador | `x-forwarded-for` (primeiro item) → `x-real-ip` → literal `'desconhecido'` | `api/cpf.js:37-40` |
+| Timeout / abort | `TIMEOUT=8000` ms + `AbortController`; `clearTimeout` no `finally` | `api/cpf.js:12,111-112,131-132` |
+| Env | `APICPF_API_KEY` (ausente → `503`) mais **4 novas**, lidas **a cada requisição** (`:15-17`): `CPF_QUOTA_WINDOW_MS` (default 60000), `CPF_QUOTA_PER_IP` (30), `CPF_QUOTA_PER_INSTANCE` (300), `SCIPIONE_ALLOWED_ORIGINS` (vazio = só o host da requisição). Não numérico ou `<=0` cai no default (`:15`) | `api/cpf.js:108-109,15-17`; `.env.example:3,10,15,18,21` |
+| Header ao provedor | `X-API-KEY: <APICPF_API_KEY>` + `Accept: application/json`, **só** no salto servidor→`apicpf.com`, que continua `GET` com `?cpf=` porque é o contrato do provedor | `api/cpf.js:114` |
+| Exports | `export default handler` (exigência da Vercel) + `export const __quota` — gancho de teste para zerar/inspecionar contadores, **não é API do app** | `api/cpf.js:93,138` |
 
-**Headers definidos na resposta.** `send()` (`api/cpf.js:6-11`) é o único caminho de saída e sempre define exatamente dois: `Content-Type: application/json; charset=utf-8` (`:8`) e `Cache-Control: no-store` (`:9`, asserido em `tests/apicpf.test.mjs:30`). Não há `Access-Control-Allow-*`, `Vary` nem `Allow` no 405 (ausência em `api/cpf.js:6-11` e `vercel.json:3-59`): outro site não consegue ler a resposta, mas ainda consegue disparar o GET.
+**Headers definidos na resposta.** `send()` (`api/cpf.js:27-32`) é o único caminho de saída e sempre define exatamente dois: `Content-Type: application/json; charset=utf-8` (`:29`) e `Cache-Control: no-store` (`:30`, asserido em `tests/apicpf.test.mjs:212`). `Retry-After` é o único header condicional e sai **só** no 429 (`:100`). Não há `Access-Control-Allow-*`, `Vary` nem `Allow` no 405 (ausência em `api/cpf.js:27-32` e `vercel.json:3-59`): outro site não consegue ler a resposta, mas ainda consegue disparar o pedido — a barreira contra isso é a checagem de origem (`:48-56`), não CORS.
 
 | Status | Corpo exato | Condição | O que o cliente faz |
 |---|---|---|---|
-| `200` | `{"ok":true,"data":{"name":string,"gender":string,"birth":string}}` | `r.ok && body?.data` do provedor; whitelist de campos `api/cpf.js:31-36` | renormaliza (trim no nome, `gender∈{M,F,I}`, `birth` tem de casar `^\d{4}-\d{2}-\d{2}$`), cacheia 30 min e preenche **só campos vazios**; status verde `Validado` (`src/services/apicpf.js:31-38`, `src/ui/clients.js:87-89`) |
-| `405` | `{"ok":false,"reason":"METHOD"}` | `api/cpf.js:14` | cai no default → `fail('UNAVAILABLE')` → **nenhum aviso na tela** (`apicpf.js:41`, `clients.js:93`) |
-| `422` | `{"ok":false,"reason":"INVALID"}` | (a) ≠11 dígitos ou DV inválido (`api/cpf.js:17`); (b) provedor 400/404 **ou** `body.code===400/404` (`:38-39`) | `r.status===422\|\|body?.reason==='INVALID'` → `throw fail('INVALID')` → badge vermelho **Inválido** (`apicpf.js:40`, `clients.js:92`) |
-| `503` | `{"ok":false,"reason":"UNAVAILABLE"}` | (a) env ausente (`api/cpf.js:20`); (b) 401/402/403/429/5xx, JSON imprestável, abort/timeout, exceção de rede (`:41-44`) | `fail('UNAVAILABLE')` → `setDocStatus('')`: o status **some**, sem mensagem, e o cadastro segue manual (`apicpf.js:41`, `clients.js:93`) |
+| `200` | `{"ok":true,"data":{"name":string,"gender":string,"birth":string}}` | `r.ok && body?.data` do provedor; whitelist de campos `api/cpf.js:117-122` | renormaliza (trim no nome, `gender∈{M,F,I}`, `birth` tem de casar `^\d{4}-\d{2}-\d{2}$`), cacheia 30 min e preenche **só campos vazios**; status verde `Validado` (`src/services/apicpf.js:37-44`, `src/ui/clients.js:87-89`) |
+| `405` | `{"ok":false,"reason":"METHOD"}` | método fora de `GET`/`POST` (`api/cpf.js:94`) | cai no default → `fail('UNAVAILABLE')` → **nenhum aviso na tela** (`apicpf.js:47`, `clients.js:93`) |
+| `415` | `{"ok":false,"reason":"TYPE"}` | `POST` com `content-type` que não contém `application/json` — barrado **antes** de tocar no corpo (`api/cpf.js:95-96`) | idem: `fail('UNAVAILABLE')`, **nenhum aviso** (`apicpf.js:47`, `clients.js:93`) |
+| `403` | `{"ok":false,"reason":"ORIGIN"}` | `Origin`/`Referer` presente com host diferente do `host` da requisição e fora de `SCIPIONE_ALLOWED_ORIGINS` (`api/cpf.js:48-56`, aplicado em `:98`). **Sem header, o pedido segue** (`:50`): 403 não é a resposta padrão de sonda anônima | idem (`apicpf.js:47`). Diferente de `INVALID`: não pinta badge vermelho |
+| `429` | `{"ok":false,"reason":"RATE_LIMITED"}` **+ header `Retry-After`** em segundos inteiros, ≥1 (`api/cpf.js:65,100`) | cota de janela fixa estourada por IP (`:66`) **ou** por instância aquecida (`:67`); tetos e janela por env, lidos a cada requisição (`:15-17`) | `r.ok` é falso e o `reason` não é `INVALID` → `fail(timedOut?'TIMEOUT':'UNAVAILABLE')` (`apicpf.js:47`) → **a interface continua exatamente como antes**: status some, sem mensagem, cadastro segue manual (`clients.js:93`) |
+| `413` | `{"ok":false,"reason":"TOO_BIG"}` | corpo em stream passou de `MAX_BODY=1024` B; a leitura é cortada no meio (`api/cpf.js:13,85`, resposta em `:103`) | idem: `fail('UNAVAILABLE')`, nenhum aviso (`apicpf.js:47`, `clients.js:93`) |
+| `422` | `{"ok":false,"reason":"INVALID"}` | (a) corpo sem `cpf`/JSON imprestável (`api/cpf.js:104`) ou ≠11 dígitos / DV inválido (`:106`); (b) provedor 400/404 **ou** `body.code===400/404` (`:124-125`) | `r.status===422\|\|body?.reason==='INVALID'` → `throw fail('INVALID')` → badge vermelho **Inválido** (`apicpf.js:46`, `clients.js:92`) — **único** código com feedback visual |
+| `503` | `{"ok":false,"reason":"UNAVAILABLE"}` | (a) env ausente (`api/cpf.js:109`); (b) 401/402/403/429/5xx do provedor, JSON imprestável, abort/timeout, exceção de rede (`:128,130`) | `fail('UNAVAILABLE')` → `setDocStatus('')`: o status **some**, sem mensagem, e o cadastro segue manual (`apicpf.js:47`, `clients.js:93`) |
 
-Anti-injeção de resposta: `name` só sai se `typeof body.data.nome==='string'`; `gender` só se ∈ `{M,F,I}`; `birth` só se string. Campos extras do provedor — inclusive `message` — nunca são repassados (`api/cpf.js:32-36`; asserção `tests/apicpf.test.mjs:42`).
+Anti-injeção de resposta: `name` só sai se `typeof body.data.nome==='string'`; `gender` só se ∈ `{M,F,I}`; `birth` só se string. Campos extras do provedor — inclusive `message` — nunca são repassados (`api/cpf.js:118-122`; asserção `tests/apicpf.test.mjs:232`). A ausência de eco vale para **todos** os corpos de erro: são literais `{ok,reason}` (`:94,96,98,100,103,104,106,109,125,128,130`), asserido transversalmente em `tests/apicpf.test.mjs:541`.
 
-**Sem a env.** A validação de CPF vem **antes** da checagem da chave (`api/cpf.js:17` vs `:19`), então uma função desprotegida continua respondendo 422 para CPF inválido e 503 para CPF válido: é um oráculo público de dígito verificador mesmo sem `APICPF_API_KEY`. No app, 503 por env ausente é indistinguível de offline (risco C-9, `audit/6-integracoes-infra.md:592`). Se `/api/cpf` não existir (hospedagem estática), o 404 em HTML passa pelo `try{body=await r.json()}catch{}` do cliente e vira `UNAVAILABLE` silencioso (`src/services/apicpf.js:30,41`; `docs/apicpf.md:14`).
+**Ordem real do `handler`** (`api/cpf.js:93`): método (`:94`) → `content-type` (`:95-96`) → origem (`:98`) → cota (`:99-100`) → leitura do corpo e validação do CPF (`:102-106`) → chave (`:108-109`) → provedor (`:114`). As quatro primeiras barreiras **não existiam** na versão anterior deste documento e todas vêm antes de qualquer gasto pago.
+
+**Sem a env — o oráculo continua.** A validação de CPF ainda vem **antes** da checagem da chave (`api/cpf.js:106` vs `:109`), então uma função implantada sem `APICPF_API_KEY` ainda responde `422` para CPF inválido e `503` para CPF válido: **é oráculo público de dígito verificador mesmo sem chave**, porque a distinção é produzida por código local, não pela resposta do provedor. Isso **não foi resolvido**; o que mudou é a posição na fila — o oráculo ficou **atrás** da checagem de origem e da cota. Estreita, não fecha: quem não envia header de origem passa (`:50`), e IP rotacionado continua sondando até o teto por instância (`:67`). No app, 503 por env ausente é indistinguível de offline (risco C-9, `docs/auditoria/6-integracoes-infra.md:592`). Se `/api/cpf` não existir (hospedagem estática), o 404 em HTML passa pelo `try{body=await r.json()}catch{}` do cliente e vira `UNAVAILABLE` silencioso (`src/services/apicpf.js:36,47`; `docs/apicpf.md:24`).
 
 ```http
-GET /api/cpf?cpf=529.982.247-25 HTTP/1.1
+POST /api/cpf HTTP/1.1
+Content-Type: application/json
 Accept: application/json
+
+{"cpf":"52998224725"}
 
 HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
@@ -61,13 +74,19 @@ Cache-Control: no-store
 {"ok":true,"data":{"name":"Maria Exemplo da Silva","gender":"F","birth":"1990-01-01"}}
 ```
 
-Nas demais respostas os dois headers acima são idênticos (tudo passa por `send()`); só muda status e corpo:
+Nas demais respostas os dois headers acima são idênticos — tudo passa por `send()` (`api/cpf.js:27-32`), que define **exatamente** `Content-Type` e `Cache-Control: no-store`; o único header condicional é `Retry-After`, e só no 429 (`:100`). Só muda status e corpo:
 
-- `GET /api/cpf?cpf=123` → `422` · `{"ok":false,"reason":"INVALID"}` (3 dígitos: nem chega ao provedor)
-- `POST /api/cpf?cpf=529.982.247-25` → `405` · `{"ok":false,"reason":"METHOD"}`
-- `GET /api/cpf?cpf=529.982.247-25` com `APICPF_API_KEY` ausente → `503` · `{"ok":false,"reason":"UNAVAILABLE"}`
+- `POST {"cpf":"123"}` → `422` · `INVALID` — 3 dígitos: nem chega ao provedor (`api/cpf.js:106`)
+- `POST {"cpf":52998224725}` → aceito: número em vez de string dá nos mesmos 11 dígitos (`api/cpf.js:90`)
+- `POST` sem `Content-Type: application/json` → `415` · `TYPE` (`api/cpf.js:95-96`)
+- `POST` com corpo de 2 KiB → `413` · `TOO_BIG` (`api/cpf.js:85,103`)
+- `PUT /api/cpf` → `405` · `METHOD` (`api/cpf.js:94`)
+- `POST` com `Origin: https://exemplo.io` → `403` · `ORIGIN` (`api/cpf.js:98`)
+- 31º `POST` do mesmo IP dentro de 60 s → `429` · `RATE_LIMITED` + `Retry-After: 59` (`api/cpf.js:66,100`)
+- `GET /api/cpf?cpf=529.982.247-25` com `APICPF_API_KEY` ausente → `503` · `UNAVAILABLE` (`api/cpf.js:109`)
+- `GET /api/cpf?cpf=…` continua **aceito** (`api/cpf.js:74-77`): forma legada, deprecada, mantida só para os bundles pré-cacheados (versão canônica do cache em `sw.js:2`)
 
-Consumidor único: `src/services/apicpf.js:24`. O CPF vai na query string nas duas pernas (risco C-3, `audit/6-integracoes-infra.md:586`). O contrato é o que `tests/apicpf.test.mjs:15-50` valida.
+Consumidor único: `src/services/apicpf.js:28-33` — `POST /api/cpf` com `body:JSON.stringify({cpf})`, `cache:'no-store'` e **nenhuma query string**. A perna navegador→função, que é a que os nossos logs veem, não carrega mais o número; a query string sobe **só** no salto servidor→APICPF (`api/cpf.js:114`), porque o contrato do provedor é `GET` com `?cpf=` e não é nosso para mudar (risco C-3, `docs/auditoria/6-integracoes-infra.md:586`, passa a valer para essa perna e para o GET legado). O `GET /api/cpf?cpf=` continua aceito no servidor (`api/cpf.js:74-77`) enquanto houver instalação com bundle pré-cacheado chamando a forma antiga — forma **deprecada**, sem data de remoção definida. O contrato é o que `tests/apicpf.test.mjs:126-590` valida: 40 casos, **nenhum** com rede real (`tests/apicpf.test.mjs:571,578`, e o contrato transversal `tests/contracts/no-egress.test.mjs`).
 
 ---
 
@@ -91,7 +110,7 @@ Disponibilidade, SLA e schema oficial do ViaCEP: **NÃO CONFIRMADO** (nenhuma ch
 
 ### 3.2 APICPF — sempre via proxy, nunca direta
 
-O navegador chama apenas `/api/cpf` (`src/services/apicpf.js:24`). A URL do provedor (`https://apicpf.com/api/consulta`, `api/cpf.js:3`) e o header `X-API-KEY` (`api/cpf.js:26`) existem **só no servidor** — nenhum string `apicpf.com` aparece em código de browser (grep em `src/`: zero). Campos consumidos pelo proxy: `data.nome`, `data.genero`, `data.data_nascimento`, `code` (`api/cpf.js:33-38`). Erros documentados do provedor — 400/404 inválido ou não encontrado, 401/403 chave, 402 créditos, 429 limites (100/dia, 6/min no plano gratuito) — vêm de `docs/apicpf.md:27-32`: **NÃO CONFIRMADO** contra o provedor. Qualquer status não previsto colapsa em 503 (`api/cpf.js:41-42`), que é falha segura. Existência, retenção e base legal do serviço: **NÃO CONFIRMADO**.
+O navegador chama apenas `/api/cpf` por `POST` com o CPF no corpo (`src/services/apicpf.js:28-33`). A URL do provedor (`https://apicpf.com/api/consulta`, `api/cpf.js:11`) e o header `X-API-KEY` (`api/cpf.js:114`) existem **só no servidor** — nenhum string `apicpf.com` aparece em código de browser (grep em `src/`: zero). Campos consumidos pelo proxy: `data.nome`, `data.genero`, `data.data_nascimento`, `code` (`api/cpf.js:119-124`). Erros documentados do provedor — 400/404 inválido ou não encontrado, 401/403 chave, 402 créditos, 429 limites (100/dia, 6/min no plano gratuito) — vêm de `docs/apicpf.md:71-78`: **NÃO CONFIRMADO** contra o provedor. Qualquer status não previsto colapsa em 503 (`api/cpf.js:128,130`), que é falha segura. Existência, retenção e base legal do serviço: **NÃO CONFIRMADO**.
 
 ### 3.3 Google — Google Identity Services + Drive API v3
 
@@ -113,7 +132,7 @@ O navegador chama apenas `/api/cpf` (`src/services/apicpf.js:24`). A URL do prov
 | Timeouts | request default 90 s; upload 180 s; download 180 s; lib GIS 20 s; popup 120 s | `:129,196,211,68,94` |
 | CSP | `accounts.google.com` em `script-src`/`frame-src`/`connect-src`; `www.googleapis.com` e `oauth2.googleapis.com` em `connect-src` | `index.html:3` |
 
-Divergências e limites: `oauth2.googleapis.com` está na allowlist mas **nenhum código chama o host** (D11, `audit/6-integracoes-infra.md:354`). Não há nenhuma checagem de bytes antes do multipart (`:182` só exige `Uint8Array` não vazio) nem consulta de espaço (`drive.about` ausente). Teto de upload multipart da Drive, API ativada, origens autorizadas, lista de testadores e política de expiração de token para app em modo *Testing*: **NÃO CONFIRMADO** (`audit/6-integracoes-infra.md:613-623`).
+Divergências e limites: `oauth2.googleapis.com` está na allowlist mas **nenhum código chama o host** (D11, `docs/auditoria/6-integracoes-infra.md:354`). Não há nenhuma checagem de bytes antes do multipart (`:182` só exige `Uint8Array` não vazio) nem consulta de espaço (`drive.about` ausente). Teto de upload multipart da Drive, API ativada, origens autorizadas, lista de testadores e política de expiração de token para app em modo *Testing*: **NÃO CONFIRMADO** (`docs/auditoria/6-integracoes-infra.md:613-623`).
 
 ---
 
@@ -135,7 +154,7 @@ Notação: `→` = valor resolvido/retornado. `op` = tupla `['put'|'delete', sto
 | `del` (`:25`) | `(s,k)` | `Promise<undefined>` | 1 tx `readwrite` strict; **não** dispara `data-changed` | idem |
 | `batch` (`:27`) | `async (ops)` | `Promise<undefined>`; `ops=[]` → resolve **sem transação e sem evento** **[verificado]** | 1 tx multi-store strict sobre `new Set(ops.map(o=>o[1]))`; `dispatchEvent(new Event('data-changed'))` no `oncomplete` | `t.error` \| `Error('Falha na gravação.')`; `t.abort()` se `t.objectStore(s)[op]` lançar |
 
-Stores (`idb.js:2-9`): `meta`(`key`), `settings`(`key`), `clients`(`id`; idx `createdAt`), `debts`(`id`; idx `clientId`,`createdAt`), `documents`(`id`; idx `clientId`), `blobs`(`id`), `history`(`id`; idx `clientId`,`at`). O índice `at` está **morto**: os registros gravam `createdAt` (`records.js:10`), nunca `at` (`audit/2-dados-negocio.md:57`).
+Stores (`idb.js:2-9`): `meta`(`key`), `settings`(`key`), `clients`(`id`; idx `createdAt`), `debts`(`id`; idx `clientId`,`createdAt`), `documents`(`id`; idx `clientId`), `blobs`(`id`), `history`(`id`; idx `clientId`,`at`). O índice `at` está **morto**: os registros gravam `createdAt` (`records.js:10`), nunca `at` (`docs/auditoria/2-dados-negocio.md:57`).
 
 #### `src/services/records.js` — 7 exports
 
@@ -252,14 +271,16 @@ Backoff de tentativas: a partir de 5 falhas, `min(5000·2^(fails-5), 300000)` ms
 
 | Export (`debts.js:linha`) | Assinatura | → | Efeitos | Erros |
 |---|---|---|---|---|
-| `listDebts` (`:6`) | `async (cid)` — `cid` opcional por falsy | `Promise<debt[]>` com `interest` derivado (`:5`), ordem `date` desc, empate `createdAt` desc | 1 tx `readonly` | `TypeError: … undefined (reading 'localeCompare')` se faltar `date` — e o estouro **depende da posição no `sort`**, logo é não determinístico (`audit/2-dados-negocio.md:216`) |
+| `listDebts` (`:6`) | `async (cid)` — `cid` opcional por falsy | `Promise<debt[]>` com `interest` derivado (`:5`), ordem `date` desc, empate `createdAt` desc | 1 tx `readonly` | `TypeError: … undefined (reading 'localeCompare')` se faltar `date` — e o estouro **depende da posição no `sort`**, logo é não determinístico (`docs/auditoria/2-dados-negocio.md:216`) |
 | `validate` (`:7`) | `(d)` | `{campo:mensagem}`; nunca lança | nenhum | — |
-| `saveDebt` (`:14`) | `async (clientId,d,old)` | `Promise<string>` id | 1 `batch` `debts`+`history` | `.errs` (`:15`); **não** verifica se `clientId` existe |
-| `deleteDebt` (`:24`) | `async (d)` | `Promise<undefined>` | 1 `batch` `debts`+`history` | erros de batch |
-| `findByRate` (`:25`) | `async (r)` — `r` em centésimos de % | `Promise<(debt & {clientName})[]>`, ordem `clientName` `pt-BR` | 2 tx `readonly` | ver `records.list` |
-| `applyBulk` (`:28`) | `async (plan)` — saída de `M.planRate` | `Promise<undefined>` | 1 `batch` multi-ops `debts`+`history` | `Error('Há taxas inválidas na prévia.')` (`:29`); `Error('Os dados mudaram desde a busca. Busque novamente.')` (`:31`) — optimistic check por `rate` |
+| `saveDebt` (`:14`) | `async (clientId,d,old)` — **exige cliente existente** | `Promise<string>` id (`:28`) | 1 `batch` `debts`+`history` (`:21-28`) | `.errs` (`:15`); `Error('Cliente não encontrado. Atualize a tela e tente de novo.')` com `code:'NO_CLIENT'` (`:20`), lançada **depois** de `validate()` — nunca no lugar de `.errs` |
+| `deleteDebt` (`:29`) | `async (d)` | `Promise<undefined>` | 1 `batch` `debts`+`history` | erros de batch. **Não** confere existência do cliente: em dívida órfã ainda grava `history` |
+| `findByRate` (`:30`) | `async (r)` — `r` em centésimos de % | `Promise<(debt & {clientName})[]>`, ordem `clientName` `pt-BR` | 2 tx `readonly` | ver `records.list` |
+| `applyBulk` (`:33`) | `async (plan)` — saída de `M.planRate` | `Promise<undefined>` | 1 `batch` multi-ops `debts`+`history` | `Error('Há taxas inválidas na prévia.')` (`:34`); `Error('Os dados mudaram desde a busca. Busque novamente.')` (`:36`) — optimistic check por `rate`. **Não** confere existência do cliente por dívida |
 
-`rec()` (`:4`) é whitelist explícita: campo extra enviado a `saveDebt` é **descartado em silêncio**; `interest` nunca é persistido (derivação única em `:5-6`).
+`rec()` (`:4`) é whitelist explícita: campo extra enviado a `saveDebt` é **descartado em silêncio**; `interest` nunca é persistido (derivação única em `:5-6`). `clientId` **não** é editável pela whitelist — não existe caminho de API para reatribuir uma dívida de cliente.
+
+**Contrato de `saveDebt(clientId,d,old)` (mudou nesta branch).** Ordem: `validate(d)` primeiro, e erro de campo sai como `Error('Corrija os campos destacados.')` com `.errs` (`src/services/debts.js:15`); **depois** vem a integridade referencial — `if(!clientId||!(await getClient(clientId)))` lança `Error('Cliente não encontrado. Atualize a tela e tente de novo.')` com `code:'NO_CLIENT'` (`src/services/debts.js:20`). A ordem é intencional: a UI pinta `.errs` por campo (`src/ui/debts.js:28`) e o `NO_CLIENT` vai para o parágrafo de erro geral. Consequência para quem chama: `saveDebt` **recusa** `clientId` ausente ou inexistente, então a tela precisa de cliente vivo na lista — `src/ui/debtspage.js:16` resolve `undefined` para dívida órfã e `src/ui/debts.js:25-27` repassa `c?.id`, produzindo hoje a mensagem legível em vez de `TypeError`. `deleteDebt` (`:29`) e `applyBulk` (`:33`) continuam **sem** essa checagem.
 
 #### `src/services/dashboard.js`, `settings.js`, `search.js` — 1+2+1 exports
 
@@ -272,7 +293,7 @@ Backoff de tentativas: a partir de 5 falhas, `min(5000·2^(fails-5), 300000)` ms
 
 #### `src/services/apicpf.js` — 1 export
 
-- `lookupCpf(value,{signal}={})` — `apicpf.js:6` → `Promise<{name:string, gender:''|'M'|'F'|'I', birth:''|'YYYY-MM-DD'}>`. Efeitos: `GET /api/cpf` (`:24`), cache `Map` TTL 30 min (`:3,12,37`), single-flight por CPF em `PENDING` (`:13,56`), timer 9000 ms (`:20`), listener `abort` no signal do chamador (`:19`). Erros (`code`): `INVALID` `:8` (sem rede), `OFFLINE` `:9`, `TIMEOUT` `:41,44`, `UNAVAILABLE` `:41,48`; `AbortError` puro do chamador é re-lançado (`:45`). O `finally` limpa timer, listener e `PENDING` (`:49-53`).
+- `lookupCpf(value,{signal}={})` — `apicpf.js:6` → `Promise<{name:string, gender:''|'M'|'F'|'I', birth:''|'YYYY-MM-DD'}>`. Efeitos: **`POST /api/cpf` com `{"cpf":…}` no corpo** (`:28-33`, `cache:'no-store'`), cache `Map` TTL 30 min (`:3,12,43`), single-flight por CPF em `PENDING` (`:13,62`), timer 9000 ms (`:20`), listener `abort` no signal do chamador (`:19`). Erros (`code`): `INVALID` `:8` (sem rede) e `:46`, `OFFLINE` `:9`, `TIMEOUT` `:47,50`, `UNAVAILABLE` `:47,54`; `AbortError` puro do chamador é re-lançado (`:49-51`). O `finally` limpa timer, listener e `PENDING` (`:55-59`). **403/413/415/429 não têm tratamento próprio**: caem no `fail('UNAVAILABLE')` de `:47`, que é por que a UI não mudou com as novas respostas da função.
 
 #### `src/services/viacep.js` — 1 export
 
@@ -382,7 +403,7 @@ Regra geral (`src/services/records.js:1,4-7`): em `clients`, `debts`, `documents
 - **debt** (store `debts`). Claro: `id`, `clientId`, `createdAt`. Cifrado, pela whitelist `rec()` (`debts.js:4`): `description`, `principal` (**int centavos**, `>0` e `≤1e13`), `rate` (**int centésimos de % a.m.**, `>0` e `≤100000`), `date`/`due` (`'AAAA-MM-DD'`, `due≥date`), `notes` (`''` se ausente), `updatedAt`. `interest` **nunca é gravado** — derivado em toda leitura (`debts.js:5-6`); `clientName` é acrescentado por `findByRate`/`debtspage`, não pelo registro. `{id:"7ab2…0002",clientId:"3f1c…0001",createdAt:1762300000000,description:"Empréstimo combinado",principal:500000,rate:1500,date:"2026-11-06",due:"2026-12-06",notes:"",updatedAt:1762300000000,interest:75000}`
 - **document** (store `documents`). Claro: `id`, `clientId`, `createdAt`. Cifrado (`clients.js:42`): `name` (apelido), `orig` (nome do arquivo), `category` (idealmente ∈ `CATS`, **não validado**), `type` (MIME final), `size`, `originalSize`, `converted:boolean`, `hash` (SHA-256 hex dos bytes gravados), `blobId`. `{id:"c9d4…0003",clientId:"3f1c…0001",createdAt:1762300000000,name:"RG de Maria",orig:"IMG_0001.png",category:"Identificação",type:"image/webp",size:48213,originalSize:1200443,converted:true,hash:"9f2c…64hex…",blobId:"b1e2…0004"}`
 - **blob** (store `blobs`). Claro só `id`; `data` é o arquivo **inteiro cifrado** (`records.js:8`). Sobrecarga de ~28 bytes por arquivo (12 de IV + 16 de tag GCM). `{id:"b1e2…0004",data:Uint8Array(12+ct+16)}` → `blobBytes()` devolve `Uint8Array` dos bytes originais
-- **history** (store `history`). Claro: `id`, `clientId`, `createdAt`. Cifrado: `type`, `detail` (`records.js:10`). Os 12 valores de `type` do código: `Cadastro de cliente`, `Alteração de dados`, `Fotografia incluída`, `Fotografia alterada`, `Fotografia removida`, `Documento incluído`, `Documento removido`, `Dívida cadastrada`, `Dívida alterada`, `Juros alterados`, `Dívida excluída`, `Juros alterados em lote` (`clients.js:24-26,42,43`; `debts.js:17,20,21,24,33`). Não há vínculo de auditoria com dívida ou documento específico — só `clientId` + texto. `{id:"e5f6…0005",clientId:"3f1c…0001",createdAt:1762300000000,type:"Dívida cadastrada",detail:"Empréstimo combinado: R$ 5.000,00 a 15% ao mês"}`
+- **history** (store `history`). Claro: `id`, `clientId`, `createdAt`. Cifrado: `type`, `detail` (`records.js:10`). Os 12 valores de `type` do código: `Cadastro de cliente`, `Alteração de dados`, `Fotografia incluída`, `Fotografia alterada`, `Fotografia removida`, `Documento incluído`, `Documento removido`, `Dívida cadastrada`, `Dívida alterada`, `Juros alterados`, `Dívida excluída`, `Juros alterados em lote` (`clients.js:24-26,42,43`; `debts.js:22,25,26,29,38`). Não há vínculo de auditoria com dívida ou documento específico — só `clientId` + texto. `{id:"e5f6…0005",clientId:"3f1c…0001",createdAt:1762300000000,type:"Dívida cadastrada",detail:"Empréstimo combinado: R$ 5.000,00 a 15% ao mês"}`
 - **settings** (store `settings`, keyPath `key`, **texto claro**): `{key:'dueWindow',value:number}` (default de leitura `7`) e `{key:'idleMinutes',value:number}` (UI oferece `1|5|15|30`, service não valida). `settings.js:2-3`, `auth.js:21,49`. `{key:"dueWindow",value:7}`
 - **meta** (store `meta`, keyPath `key`, **claro exceto material criptográfico**): `{key:'vault',salt:Uint8Array(16),iv:Uint8Array(12),wrapped:Uint8Array,iter:600000,kdf:'PBKDF2-SHA256',cipher:'AES-GCM-256',v:1}` (`crypto.js:11`); `{key:'guard',fails:number,until:number}` (`auth.js:26`); `{key:'session',sid:string,dek:CryptoKey,last:number,mins:number}` (`auth.js:55`); `{key:'probe',data:Uint8Array}` — sonda cifrada gravada pela UI (`src/ui/settings.js:32`).
 
@@ -397,7 +418,7 @@ Regra geral (`src/services/records.js:1,4-7`): em `clients`, `debts`, `documents
 | `onLock(reason)` (lista de callbacks de módulo, não DOM) | `auth.lock()` — `reason ∈ {'idle','manual','logout'}` (`src/security/auth.js:64`; `src/ui/shell.js:36`; `src/ui/settings.js:54`) | `src/main.js:61` (volta à tela de senha e traduz o motivo), `src/ui/avatar.js:12` (`clearClientPhotos`), `src/ui/clients.js:4` (`clean`: aborta formulários, `unwatch`, revoga URLs, fecha `dialog`) | string do motivo |
 | `beforeinstallprompt` | navegador | `src/pwa.js:2` → `preventDefault`, guarda `deferred`, notifica `cbs` | evento nativo |
 | `pointerdown`,`keydown`,`touchstart`,`scroll` (`passive`) + `visibilitychange` | navegador | `src/security/auth.js:11` (`touch`/`check`); registrados em `unlock`/`restoreSession`, removidos em `lock` (`:12`) | — |
-| `abort` (AbortSignal) | `AbortController` dos services | `src/services/apicpf.js:19,51`, `src/services/viacep.js:14,26` | — |
+| `abort` (AbortSignal) | `AbortController` dos services | `src/services/apicpf.js:19,57`, `src/services/viacep.js:14,26` | — |
 | `change` em `<input type=file>` | usuário | `src/ui/kit.js:14` (`sync`) e listeners avulsos (`src/ui/clients.js:55,140,142`; `src/ui/tools.js:44,81`) | — |
 | `install`,`activate`,`fetch` | navegador (SW) | `sw.js:3-5` — pré-cache de `FILES`, limpeza de caches antigos, cache-first com fallback `index.html` | — |
 | `MutationObserver` (não é evento) | `#app` (`childList,subtree`) e `disabled` de botão | `src/ui/shell.js:63` (rAF → `sync`), `src/ui/shell.js:22` (`busyStop`) | — |
@@ -420,7 +441,7 @@ Definido em `src/export/backup-format.js`; `formatVersion` atual = **1** (`:5`).
 
 ## 8. Erros de domínio
 
-**`{errs}`.** Formato `Object.assign(new Error('Corrija os campos destacados.'),{errs})`: a mensagem do `Error` é **constante**; o que varia é `errs`, mapa plano `campo → mensagem pt-BR` (`src/services/clients.js:18`, `src/services/debts.js:15`). A UI escreve cada entrada no `<small>` do campo e mostra `x.message` no erro geral (`src/ui/clients.js:47`, `src/ui/debts.js:26`).
+**`{errs}`.** Formato `Object.assign(new Error('Corrija os campos destacados.'),{errs})`: a mensagem do `Error` é **constante**; o que varia é `errs`, mapa plano `campo → mensagem pt-BR` (`src/services/clients.js:18`, `src/services/debts.js:15`). A UI escreve cada entrada no `<small>` do campo e mostra `x.message` no erro geral (`src/ui/clients.js:47`, `src/ui/debts.js:28`).
 
 | Chave | Mensagem literal | Origem |
 |---|---|---|
@@ -434,7 +455,7 @@ Definido em `src/export/backup-format.js`; `formatVersion` atual = **1** (`:5`).
 | `date` | `'Data inválida.'` | `debts.js:11` |
 | `due` | `'Informe o vencimento.'` \| `'O vencimento não pode ser anterior ao registro.'` | `debts.js:12` |
 
-**Códigos.** `/api/cpf` (`reason` no corpo): `METHOD` (405), `INVALID` (422), `UNAVAILABLE` (503) — só esses três valores (`api/cpf.js:14,17,20,39,42,44`). `src/services/apicpf.js`: `INVALID`, `OFFLINE`, `TIMEOUT`, `UNAVAILABLE` — e como o helper é `fail(code,message)` (`:4`), **`x.message === x.code`**. `src/services/viacep.js`: `INVALID`, `OFFLINE`, `TIMEOUT`, `NETWORK`, `UNAVAILABLE`, `INVALID_RESPONSE`, `NOT_FOUND` (helper `fail(message,code)`, `:5`). `src/services/google-drive.js`: `CONFIG`, `INSTALLED`, `OFFLINE`, `AUTH`, `NETWORK`, `DRIVE`, `SECURE`, `INTEGRITY`. `src/export/backup-format.js`: `INVALID`, `NEEDS_PASSWORD`, `BAD_PASSWORD`. Services de escrita sem `code`: `Error` com `.errs` ou mensagem fixa (`clients.js:40`, `debts.js:29,31`, `backup.js:7`). `auth.js`, `process.js` e `idb.js` lançam **só mensagem** em pt-BR — o consumidor compara texto, e `src/main.js:8` traduz `QuotaExceededError` à mão.
+**Códigos.** `/api/cpf` (`reason` no corpo): `METHOD` (405), `TYPE` (415), `ORIGIN` (403), `RATE_LIMITED` (429, com `Retry-After`), `TOO_BIG` (413), `INVALID` (422), `UNAVAILABLE` (503) — sete valores, todos literais, nenhum com o CPF (`api/cpf.js:94,96,98,100,103,104,106,109,125,128,130`). `src/services/apicpf.js`: `INVALID`, `OFFLINE`, `TIMEOUT`, `UNAVAILABLE` — e como o helper é `fail(code,message)` (`:4`), **`x.message === x.code`**. `src/services/viacep.js`: `INVALID`, `OFFLINE`, `TIMEOUT`, `NETWORK`, `UNAVAILABLE`, `INVALID_RESPONSE`, `NOT_FOUND` (helper `fail(message,code)`, `:5`). `src/services/google-drive.js`: `CONFIG`, `INSTALLED`, `OFFLINE`, `AUTH`, `NETWORK`, `DRIVE`, `SECURE`, `INTEGRITY`. `src/export/backup-format.js`: `INVALID`, `NEEDS_PASSWORD`, `BAD_PASSWORD`. `src/services/debts.js` tem **dois** tipos de falha: `Error` com `.errs` (`:15`), mensagem fixa vinda de `applyBulk` (`:34,36`) e — desde esta branch — `Error` com `code:'NO_CLIENT'` em `saveDebt` (`:20`), a única mensagem do arquivo que não é de campo: `'Cliente não encontrado. Atualize a tela e tente de novo.'`. A UI diferencia por `code`? Não: trata `.errs` por campo (`src/ui/debts.js:28` — o mesmo `catch` que pinta `.errs` por campo). Services de escrita ainda sem `code`: `clients.js:40`, `backup.js:7`. `auth.js`, `process.js` e `idb.js` lançam **só mensagem** em pt-BR — o consumidor compara texto, e `src/main.js:8` traduz `QuotaExceededError` à mão.
 
 ---
 
@@ -457,9 +478,9 @@ Definido em `src/export/backup-format.js`; `formatVersion` atual = **1** (`:5`).
 | `document.getElementById('app')` / `('nav')` | montadores obrigatórios da UI (existem em `index.html:11`) | `src/main.js:4`, `src/ui/shell.js:11` |
 | `console.warn` | **únicos logs** do app: falha do callback reativo e falha de registro do SW | `src/core/live.js:2`, `src/pwa.js:3` |
 | `caches`, `clients.claim`, `skipWaiting`, `Response.error` | apenas no service worker | `sw.js:3-5` |
-| cookies, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, `EventSource`, `new Worker` | **zero ocorrências** no código do app (`src/`, `api/`, `sw.js`, `index.html`); a única ocorrência em todo o repo é `new Worker` como string dentro da lib minificada `vendor/fflate.min.js`, nunca instanciada pelo app | ausência confirmada por grep próprio e em `audit/6-integracoes-infra.md:538-547` |
+| cookies, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, `EventSource`, `new Worker` | **zero ocorrências** no código do app (`src/`, `api/`, `sw.js`, `index.html`); a única ocorrência em todo o repo é `new Worker` como string dentro da lib minificada `vendor/fflate.min.js`, nunca instanciada pelo app | ausência confirmada por grep próprio e em `docs/auditoria/6-integracoes-infra.md:538-547` |
 
-**Variáveis de ambiente:** uma única no projeto — `APICPF_API_KEY`, lida em `api/cpf.js:19` (lado servidor). Placeholder em `.env.example:3`; `.gitignore:6-8` exclui `.env*`. Não há `import.meta.env` em código de browser (grep: zero ocorrências em `src/`, `api/`, `sw.js`). O `client_id` do Google **não** é config de ambiente: está hardcoded em `src/config/google.js:5` (campo `projectId` informativo em `:8`, `origins` em `:10`).
+**Variáveis de ambiente:** cinco, todas **do lado servidor** — `APICPF_API_KEY` (`api/cpf.js:108`) e as quatro de proteção da função, lidas **a cada requisição** por `envInt`/`extraOrigins` (`api/cpf.js:15-17`): `CPF_QUOTA_WINDOW_MS` (default 60000), `CPF_QUOTA_PER_IP` (30), `CPF_QUOTA_PER_INSTANCE` (300) e `SCIPIONE_ALLOWED_ORIGINS` (vazio = só o `host` da requisição). Defaults aplicados quando ausentes, vazias, não numéricas ou `<=0` (`api/cpf.js:15`). Placeholders em `.env.example:3,10,15,18,21`; `.gitignore:6-8` exclui `.env*`. Não há `import.meta.env` em código de browser (grep: zero ocorrências em `src/`, `api/`, `sw.js`). O `client_id` do Google **não** é config de ambiente: está hardcoded em `src/config/google.js:5` (campo `projectId` informativo em `:8`, `origins` em `:10`).
 
 ---
 
@@ -469,9 +490,9 @@ Definido em `src/export/backup-format.js`; `formatVersion` atual = **1** (`:5`).
 
 1. `package.json:1` não tem campo `version` — não há número de release a comparar.
 2. Nenhum módulo declara versão, `@since`, `@deprecated` ou changelog; não há TypeScript, `.d.ts`, JSDoc de tipos nem lint. As assinaturas da seção 4 só existem no código.
-3. Não há `scripts` nem CI (`audit/6-integracoes-infra.md:590`): nada verifica, em build ou push, que um export renomeado ainda é consumido pelos módulos que o importam. A rede de segurança são os 7 arquivos de `tests/*.mjs`, executados à mão (`docs/README.md:22`).
+3. **Isto já não é verdade, e a frase anterior precisa de correção.** Não há campo `scripts` em `package.json:1` (logo não há `npm test`), mas **há** `scripts/check-static.mjs`, `scripts/run-tests.mjs` e CI em `.github/workflows/ci.yml`, com os jobs `estatico`, `testes` e `smoke-navegador` (`ci.yml:58,142,260`). O `scripts/` roda 7 grupos de checagem (`essenciais`, `sintaxe`, `sw`, `json`, `deps`, `segredos`, `docs`), invocáveis em subconjunto com `--only=`. Um deles, `--only=docs`, é exatamente o contrato deste documento: toda referência `arquivo:linha` da documentação canônica tem de **resolver** a um arquivo do repositório e a uma linha **dentro da faixa** daquele arquivo — e `tests/contracts/docs-refs.test.mjs` garante que o mecanismo não é vacuoso (prova contra fixture). O que **continua** ausente: nada verifica, em build ou push, que um export **renomeado** ainda é consumido por quem o importa — `tests/contracts/imports.test.mjs` cobre resolução de especificadores, não assinaturas (`tests/contracts/imports.test.mjs:1-3`). A rede de segurança são os 28 arquivos `tests/**/*.test.mjs`, canonicamente por `node scripts/run-tests.mjs` (`docs/README.md:22`).
 4. Consequência: alterar a assinatura de `enc()`, `batch()` ou `stats()` é **quebra silenciosa em tempo de execução**, visível só quando a rota afetada for aberta; `git grep` das chamadas é o único mecanismo de análise de impacto disponível.
 
-Os quatro controles de versão que existem são estreitos e não cobrem API interna: `DB_VERSION=MIGRATIONS.length` (`src/db/idb.js:10`, evolui por append — regra só no comentário `:1`, **sem** guarda `objectStoreNames.contains`); `FORMAT=1` do backup (`backup-format.js:5`, recusa versão futura na leitura `:32`, mas `MIGRATE[v]` é prometido no comentário `:3` e **não implementado**); `meta.v=1` do cofre (`crypto.js:11`, **gravado e nunca lido** — `openVault` não o confere, então trocar o KDF hoje não tem detecção); e `V='sc-v69'` do service worker (`sw.js:2`, mantido à mão junto da lista `FILES`, sem relação com as versões acima).
+Os quatro controles de versão que existem são estreitos e não cobrem API interna: `DB_VERSION=MIGRATIONS.length` (`src/db/idb.js:10`, evolui por append — regra só no comentário `:1`, **sem** guarda `objectStoreNames.contains`); `FORMAT=1` do backup (`backup-format.js:5`, recusa versão futura na leitura `:32`, mas `MIGRATE[v]` é prometido no comentário `:3` e **não implementado**); `meta.v=1` do cofre (`crypto.js:11`, **gravado e nunca lido** — `openVault` não o confere, então trocar o KDF hoje não tem detecção); e `V='sc-v70'` do service worker (`sw.js:2`, mantido à mão junto da lista `FILES`, sem relação com as versões acima — é a versão que delimita até quando o `GET /api/cpf?cpf=` legado ainda precisa ser aceito, §2).
 
-Contratos que hoje só existem por convenção e exigem cuidado explícito antes de mudar: o corpo e os `reason` de `/api/cpf` (únicos com teste automatizado — tratar `tests/apicpf.test.mjs:15-50` como especificação, conforme `audit/6-integracoes-infra.md:568`); a tupla `['put'|'delete',store,valor]` de `db.batch` (usada por `records.js`, `clients.js`, `debts.js` e `backup.js`); o envelope `{id,createdAt,clientId,data}` (mover campo para `data` quebra índice; mover para claro amplia a exposição); os nomes de chave em `settings` (`dueWindow`, `idleMinutes`) e `meta` (`vault`, `guard`, `session`, `probe`), que são strings soltas sem enumeração central; e os valores de `code`/`reason`, comparados como literais na UI (`src/ui/clients.js:92`) — renomear um código **silencia** o feedback. Compatibilidade de dados já gravados: o payload cifrado é JSON auto-descrito, então **adicionar** campo de cliente não exige migração; em dívida há whitelist fechada (`src/services/debts.js:4`) e esquecer de incluí-la descarta o campo em silêncio.
+Contratos que hoje só existem por convenção e exigem cuidado explícito antes de mudar: o corpo e os `reason` de `/api/cpf` (o contrato externo mais bem coberto do repo: tratar `tests/apicpf.test.mjs:126-590` como especificação, conforme `docs/auditoria/6-integracoes-infra.md:568` — e hoje protegido também pela checagem de citações `--only=docs` + `tests/contracts/docs-refs.test.mjs`, que é o que impede este documento de apontar para linha inexistente); a tupla `['put'|'delete',store,valor]` de `db.batch` (usada por `records.js`, `clients.js`, `debts.js` e `backup.js`); o envelope `{id,createdAt,clientId,data}` (mover campo para `data` quebra índice; mover para claro amplia a exposição); os nomes de chave em `settings` (`dueWindow`, `idleMinutes`) e `meta` (`vault`, `guard`, `session`, `probe`), que são strings soltas sem enumeração central; e os valores de `code`/`reason`, comparados como literais na UI (`src/ui/clients.js:92`) — renomear um código **silencia** o feedback. Compatibilidade de dados já gravados: o payload cifrado é JSON auto-descrito, então **adicionar** campo de cliente não exige migração; em dívida há whitelist fechada (`src/services/debts.js:4`) e esquecer de incluí-la descarta o campo em silêncio.

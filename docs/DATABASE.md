@@ -4,6 +4,8 @@ Escopo: camada de persistência local (`src/db/idb.js`), formato de registro cif
 
 Método: todo fato abaixo foi **relido no código-fonte** deste repositório e citado como `arquivo:linha`. Quatro fatos foram reconfirmados por execução fora do repositório (script em `/tmp/qa/`, stub de IndexedDB + WebCrypto do Node): `DB_VERSION = 1`; 7 stores e 6 índices criados, todos com opções `null` (nenhum `unique`); `data` cifrada é `Uint8Array` de tamanho `12 + claro + 16`; a DEK aberta por `openVault` é `AES-GCM 256`, `extractable=false`. O que depende de navegador real (IndexedDB nativo, `QuotaExceededError`, `createImageBitmap`) está marcado **NÃO CONFIRMADO**. Nenhum campo ou versão foi inventado.
 
+Nesta rodada (branch `fix/api-cpf-exposure-and-debt-integrity`) `src/services/debts.js` (39 linhas) e `src/ui/debts.js` (72) foram relidos linha a linha e todas as citações de dívidas foram re-pontadas: `saveDebt` ganhou guarda de integridade referencial (`src/services/debts.js:20`), `deleteDebt` está em `:29`, `findByRate` em `:30-31` e `applyBulk` em `:33-39`. **Nada de schema mudou**: `src/db/idb.js` continua com `DB_VERSION = 1`, 7 stores, 6 índices e **nenhuma constraint** — o que fechou foi a camada de serviço, não o banco.
+
 ---
 
 ## 1. Identidade do banco
@@ -52,11 +54,12 @@ DATABASE "scipione-cred"  (version = 1 = MIGRATIONS.length)          src/db/idb.
 │
 ├─ clients     keyPath "id"    índice: createdAt                      idb.js:6
 │    registro claro: id, createdAt, data(Uint8Array)                  records.js:7
-│    data cifra: type,name,doc,birth,gender,rg,phone,mobile,email,
+│      data cifra: type,name,doc,birth,gender,rg,phone,mobile,email,
 │               cep,street,number,complement,district,city,state,
 │               address,photoId,photoType,updatedAt                   clients.js:23 · ui/clients.js:46
 │      │
-│      ├─► debts.clientId        1:N  (convenção, sem constraint)     debts.js:16
+│      ├─► debts.clientId        1:N  schema livre; a guarda é de      debts.js:20
+│                                   serviço (ver §6.1), não do banco
 │      ├─► documents.clientId    1:N                                  clients.js:42
 │      ├─► history.clientId      1:N                                  records.js:10
 │      └─► blobs.id              1:1 via data.photoId (cifrado,
@@ -126,7 +129,7 @@ export const uid=()=>crypto.randomUUID();                                  // re
 const newSid=()=>crypto.randomUUID?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');  // auth.js:10
 ```
 
-- `uid()` gera **UUID v4** e é a origem de `id` de cliente (`src/services/clients.js:19`), dívida (`src/services/debts.js:16`), documento e blob/foto (`src/services/clients.js:20,41-42`) e evento de histórico (`src/services/records.js:10`). Diferente de `newSid`, `uid` **não tem fallback**: se `crypto.randomUUID` não existir (contexto não seguro), o cadastro quebra — **NÃO CONFIRMADO** em navegador.
+- `uid()` gera **UUID v4** e é a origem de `id` de cliente (`src/services/clients.js:19`), dívida (`src/services/debts.js:21`), documento e blob/foto (`src/services/clients.js:20,41-42`) e evento de histórico (`src/services/records.js:10`). Diferente de `newSid`, `uid` **não tem fallback**: se `crypto.randomUUID` não existir (contexto não seguro), o cadastro quebra — **NÃO CONFIRMADO** em navegador.
 - **Colisões:** não há verificação de unicidade de `id` em lugar algum, e `put` é *upsert* (`src/db/idb.js:24`): duas escritas com o mesmo `id` produzem substituição silenciosa. Probabilisticamente UUID v4 não colide; o risco prático vem de `restore`, que decide por id (`src/export/backup.js:22-27`) e por isso o registro existente prevalece.
 - **Unicidade de documento (CPF/CNPJ):** é checagem em JavaScript, fora de transação e sem índice `unique` (`src/services/clients.js:11`, `src/db/idb.js:5`) — ver §6.
 - **Ordenação natural:** a ordem de `getAll()` sem range é a ordem ascendente da chave (`src/db/idb.js:23`) — sendo a chave um UUID aleatório, ela **não** tem relação com o tempo de criação. Por isso toda exibição reordena em JS: `createdAt` desc para documentos e histórico (`src/services/clients.js:36,37`), `date` desc com empate em `createdAt` para dívidas (`src/services/debts.js:6`), `localeCompare(...,'pt-BR')` para nomes (`src/ui/clientlist.js:9`, `src/services/debts.js:26`), `createdAt` desc para os últimos clientes (`src/services/dashboard.js:7`).
@@ -146,9 +149,10 @@ Primitivos: `get`/`getAll` abrem transação `readonly` de 1 store; `put`/`del` 
 | `removeDoc` | `blobs`,`documents`,`history` | RW | 1 | `src/services/clients.js:43` |
 | `docBytes`/`blobBytes` | `blobs` | readonly | 1 por arquivo | `src/services/records.js:9` |
 | `listDebts` | `debts` | readonly | 1 | `src/services/debts.js:6` |
-| `saveDebt` / `deleteDebt` | `debts`,`history` | RW | 1 cada | `src/services/debts.js:23,24` |
-| `findByRate` | `clients`+`debts` | readonly | 2 | `src/services/debts.js:25-26` |
-| `applyBulk` | `debts` (leitura) → `debts`,`history` (N ops) | RO depois RW | **1 + 1** | `src/services/debts.js:30-34` |
+| `saveDebt` | `clients` (leitura da guarda) → `debts`,`history` | RO depois RW | **1 + 1** | `src/services/debts.js:20,28` |
+| `deleteDebt` | `debts`,`history` | RW | 1 | `src/services/debts.js:29` |
+| `findByRate` | `clients`+`debts` | readonly | 2 | `src/services/debts.js:30-31` |
+| `applyBulk` | `debts` (leitura) → `debts`,`history` (N ops) | RO depois RW | **1 + 1** | `src/services/debts.js:33-39` |
 | `getDueWindow` / `setDueWindow` | `settings` | RO / RW | 1 cada; **sem `data-changed`** | `src/services/settings.js:2-3` |
 | `stats` | `clients`,`debts`,`history`,`settings` | readonly | 4 concorrentes (`Promise.all`) | `src/services/dashboard.js:4` |
 | `auth.setup` | `meta` → `settings` → (`meta`+`settings` reads) | RW | **2 RW separadas** + leituras de `unlock` | `src/security/auth.js:21` |
@@ -168,7 +172,7 @@ Três destaques estruturais:
 
 | Risco de integridade | Causa (linha) | Efeito observável |
 |---|---|---|
-| **Órfãos** de dívida/documento/histórico | janela leitura→escrita em `deleteClient` (`src/services/clients.js:32-35`) e `saveDebt` que **não** verifica existência do cliente (`src/services/debts.js:14-16`) | registro sem cliente entra nos totais (`src/services/dashboard.js:6`), fica invisível por cliente (`src/services/debts.js:6`) e faz `validate` do backup recusar a restauração (`src/export/backup-format.js:24-26`) |
+| **Órfãos** de dívida/documento/histórico | três fontes restantes, todas **anteriores ou paralelas** à guarda: (a) janela leitura→escrita em `deleteClient` (`src/services/clients.js:32-35`); (b) cofre do aparelho já gravado antes de a guarda existir — restaurar um backup com órfã **não** é caminho de entrada, porque `validate()` recusa a leitura (`src/export/backup-format.js:24`); (c) linha de `history` com `clientId` ausente escrita sobre dado legado por `deleteDebt` (`src/services/debts.js:29`) e `applyBulk` (`src/services/debts.js:38`). A criação/edição de dívida **não** produz mais órfã: `saveDebt` verifica a existência depois de `validate()` (`src/services/debts.js:20`) | registro sem cliente entra nos totais (`src/services/dashboard.js:6`), fica invisível por cliente (`src/services/debts.js:6`) e faz `validate` do backup recusar a restauração (`src/export/backup-format.js:24-26`) — leitura detalhada em §6.1 |
 | **Registro sem `clientId`** | `enc` omite `clientId` falsio (`src/services/records.js:7`) quando `map.get(...)` não resolve no merge (`src/export/backup.js:24-27`) | invisível para `rel()`/`listDocs`/`deleteClient` (`src/services/clients.js:29,33,36`), mas presente em `getAll` e nos totais |
 | **Duplicidade de documento** (CPF/CNPJ e hash) | checagem fora de transação, sem `unique` (`src/services/clients.js:11,17,40`; `src/db/idb.js:5`) | duas linhas com o mesmo `doc`; dois registros `documents`+`blobs` para o mesmo arquivo |
 | **Dado restaurado que quebra a leitura** | `validate` não exige `date`/`due` nem integridade inteira de `principal` (`src/export/backup-format.js:24`) | `due.js:2` lança `TypeError` (derruba `stats`), `money.js:9` lança `RangeError` com centavo fracionário, `debts.js:6` alterna entre crash e ordenação errada |
@@ -177,6 +181,24 @@ Três destaques estruturais:
 | **`history.at` nunca gravado** | `idx('history','clientId','at')` (`src/db/idb.js:8`) vs `hist()` que grava `createdAt` (`src/services/records.js:10`) | índice morto; ordenação real é `createdAt` (`src/services/clients.js:37`) |
 | **Escrita fora de `batch` não revalida a tela** | `put`/`del` não disparam `data-changed` (`src/db/idb.js:24-25` vs `:30`) | `setDueWindow` (`src/services/settings.js:3`) e `setIdle` (`src/security/auth.js:49`) deixam a página com valor antigo em memória (`src/ui/debtspage.js:34,37`) |
 | **Duas transações onde bastaria uma** | `auth.setup` (`src/security/auth.js:21`) | queda entre elas deixa `meta.vault` sem `settings.idleMinutes`; `unlock` recai no default 5 (`src/security/auth.js:33`) |
+
+### 6.1 Dívida órfã legada: como ler o que já existe
+
+A guarda de `src/services/debts.js:20` vale **daqui para frente**: ela não reescreve cofre alheio e o schema não tem constraint que a ajude (§2). Um registro em `debts` cujo `clientId` não corresponde a nenhum `clients.id` continua legível e se comporta assim em cada superfície — quadro lido no código desta branch, com os casos que o fixam em `tests/svc/dashboard.test.mjs:148-155` e `tests/svc/debts.test.mjs:150-160`:
+
+| Onde | O que acontece | Por quê |
+|---|---|---|
+| Painel — totais | **entra** em `principal`, `interest` e na contagem de dívidas, e pode disparar o alerta de vencimento | `stats()` soma `listDebts()` sem cruzar com `clients` (`src/services/dashboard.js:4,6`) e classifica o vencimento por ela (`src/services/dashboard.js:5`) |
+| Extrato do cliente | **não aparece** em cliente nenhum | `listDebts(cid)` filtra por igualdade de chave (`src/services/debts.js:6`) |
+| Página Dívidas | aparece com o nome resolvido como **`—`**; "Abrir perfil" aponta para um cliente inexistente | `clientName:names.get(d.clientId)||'—'` (`src/ui/debtspage.js:35`) e `open(d.clientId)` (`src/ui/debtspage.js:21`) |
+| Juros em lote (`findByRate`) | **`—`** no lugar do nome do cliente | `cs.get(d.clientId)||'—'` (`src/services/debts.js:31`) |
+| Editar pela página Dívidas | o form recebe `c` **`undefined`**, salva com `c?.id` e o serviço recusa com mensagem legível | `c=cs.find(...)` (`src/ui/debtspage.js:16`) → `form(U,c,d,reopen)` (`src/ui/debtspage.js:21`) → `S.saveDebt(c?.id,…)` (`src/ui/debts.js:27`) → `code:'NO_CLIENT'` (`src/services/debts.js:20`) |
+| Histórico do painel | a linha de `history` da mesma órfã mostra **`—`** como cliente | `names.get(e.clientId)||'—'` (`src/services/dashboard.js:7`) |
+| Backup | **irrestaurável**: `validate()` produz "Dívida sem cliente (…)" e `readBackup` lança `INVALID` | `src/export/backup-format.js:24`, `src/export/backup-format.js:43` |
+
+Consequências registradas, sem juízo de correção: (1) painel e extrato **divergem** sobre quantas dívidas existem — `debts:ds.length` (`src/services/dashboard.js:6`) conta a órfã, `listDebts(cid)` (`src/services/debts.js:6`) não a mostra; (2) um backup contendo órfã **não restaura em lugar nenhum**, porque a recusa acontece na leitura do arquivo (`src/export/backup-format.js:24`, caminho em `:43`) e não na escrita — o aparelho que tem a órfã consegue exportar, ninguém consegue importar; (3) não existe caminho na UI para **reatribuir** a órfã a um cliente existente, só recusar o salvamento (`src/ui/debts.js:27`, `src/services/debts.js:20`).
+
+Fechar isso retroativamente **é migração**, não correção de leitura: exige função nova ao fim de `MIGRATIONS` (com `DB_VERSION` subindo por consequência — `src/db/idb.js:1,10,14`) e, se o contrato do backup for tocado, bump de `FORMAT` (`src/export/backup-format.js:5`). Nenhum desses números foi alterado nesta entrega: `src/db/idb.js` segue com 30 linhas e `DB_VERSION = 1`, e a mudança **continua sem autorização** do mantenedor — ver §7, §12 e `docs/ROADMAP.md` D-01.
 
 ## 7. Migrações: como adicionar um store/índice com segurança hoje
 

@@ -2,7 +2,7 @@
 
 ## 1. Objetivo, premissa e política de prioridade
 
-**Objetivo.** Converter os achados verificados nas sete auditorias (`audit/1-bootstrap-navegacao.md` a `audit/7-testes-infra.md`) num backlog acionável: cada item abaixo é fechável por um agente de implementação sem decisão de projeto adicional, porque traz evidência `arquivo:linha`, impacto, correção mínima e critérios de aceite testáveis.
+**Objetivo.** Converter os achados verificados nas sete auditorias (`docs/auditoria/1-bootstrap-navegacao.md` a `docs/auditoria/7-testes-infra.md`) num backlog acionável: cada item abaixo é fechável por um agente de implementação sem decisão de projeto adicional, porque traz evidência `arquivo:linha`, impacto, correção mínima e critérios de aceite testáveis.
 
 **Premissa inegociável: preservar o funcionamento atual.** Nenhuma item deste roadmap muda regra de negócio, layout, fluxo de telas, formato de dado ou política de segurança por iniciativa própria. Toda mudança de comportamento visível está marcada e condicionada a autorização. Itens que poderiam quebrar cofres existentes (normalização de senha no KDF, recriação de stores, bump de `FORMAT` sem migrador) estão na seção 5.
 
@@ -21,12 +21,15 @@
 
 ---
 
-## 2. Tabela-resumo (62 itens)
+## 2. Tabela-resumo (66 itens — 62 originais + 4 abertos nesta revisão; 2 **[FEITO EM CÓDIGO]**)
+
+**Legenda de status desta revisão.** Uma linha marcada **[FEITO EM CÓDIGO]** foi concluída na branch `fix/api-cpf-exposure-and-debt-integrity`. As quatro linhas novas (`S-02a`, `S-10`, `D-12`, `D-13`) nasceram do que essas correções deixaram em aberto — não são itens inventados: cada uma tem evidência `arquivo:linha` no próprio detalhe. **Exceção à premissa da seção 1:** todas as citações de `api/cpf.js`, `src/services/apicpf.js` e `src/services/debts.js` valem para o estado atual da branch, não para `e78d776`; foram re-pontadas nesta revisão.
 
 | ID | Título | Severidade / categoria | Esforço | Depende de | Autorização |
 |---|---|---|---|---|---|
 | S-01 | DEK persistida em IndexedDB; `lock()` não aguarda o delete | Alta — cofre/sessão | M | Q-05 | Sim (cofre) |
-| S-02 | `/api/cpf` é oráculo público sem auth nem rate limit | Alta — superfície remota | M | Q-01 | Não |
+| S-02 | `/api/cpf` é oráculo público sem auth nem rate limit — **[FEITO EM CÓDIGO]**; restam S-02a e S-10 | Alta — superfície remota | M | Q-01 | Não |
+| S-02a | Criar regra de rate limit na WAF — **dashboard, fora do repo** | Alta — superfície remota | S | S-02 | Sim (painel do mantenedor) |
 | S-03 | `iter`/`salt` do KDF vêm de dado não autenticado, sem clamp | Média — criptografia | S | Q-07 | Não |
 | S-04 | Erro de integridade vira "Senha incorreta" e queima tentativa | Média — disponibilidade | S | Q-05 | Não |
 | S-05 | Falha GCM em 1 registro derruba a store inteira, muda | Média — disponibilidade | M | Q-03 | Não |
@@ -34,7 +37,8 @@
 | S-07 | Retenção pós-bloqueio: blob URLs, caches de PII, token do Drive | Baixa — higiene | S | — | Não |
 | S-08 | MIME/nome do arquivo sem verificação de conteúdo (magic bytes) | Baixa — entrada de arquivo | S | Q-06 | Não |
 | S-09 | Header CSP só com `frame-ancestors`; sem SRI no bundle | Baixa — defense in depth | M | P-01 | Não |
-| D-01 | `saveDebt` aceita `clientId` inexistente (dívida órfã) | Média — integridade referencial | S | Q-04 | Não |
+| S-10 | `GET /api/cpf?cpf=` legado aceito — deprecado, remoção sob condição | Baixa — privacidade/higiene | S | S-02, P-01 | Sim (dono) |
+| D-01 | `saveDebt` aceita `clientId` inexistente (dívida órfã) — **[FEITO EM CÓDIGO]**; restam D-12 e D-13 | Média — integridade referencial | S | Q-04 | Não |
 | D-02 | Corrida de duplicidade de CPF/CNPJ fora da transação | Média — integridade | M | D-05, Q-03 | Sim (schema) |
 | D-03 | `deleteClient` em 4 leituras + 1 escrita | Média — integridade | M | Q-03 | Não |
 | D-04 | Índices nunca usados e `history.at` nunca gravado | Baixa — schema morto | S | — | Não |
@@ -45,6 +49,8 @@
 | D-09 | Formato do backup: `MIGRATE` prometido inexistente, `dbVersion` lido por ninguém | Alto — compatibilidade | M | D-06 | Sim (formato) |
 | D-10 | Rotas destrutivas sem backup prévio nem confirmação forte | Alto — perda de dados | M | Q-04 | Sim (design) |
 | D-11 | Exportação: teto de 26 colunas no XLSX e `zipSync` síncrono | Baixa — exportação | M | Q-07 | Não |
+| D-12 | `deleteDebt`/`applyBulk` escrevem histórico órfão em dado legado | Baixa — integridade | S | D-01 | Não |
+| D-13 | Sem rota de reatribuição de dívida órfã na UI | Média — recuperação de dado | M | D-01 | Sim (design) |
 | P-01 | `V`/`FILES` mantidos à mão: 4 commits serviram cache obsoleto | Média — publicação | S | Q-02 | Não |
 | P-02 | `addAll` tudo-ou-nada sem catch; fallback só em falha de rede | Média — offline | M | Q-09 | Não |
 | P-03 | `skipWaiting` + `clients.claim` trocam cache sob aba viva sem aviso | Média — atualização | M | P-01 | Sim (design) |
@@ -71,7 +77,7 @@
 | Q-07 | Normalizar os 7 scripts legados para `node:test` `describe`/`it` | Média — testes | M | Q-02 | Não |
 | Q-08 | Gate de cobertura progressivo (21 módulos sem teste) | Média — gate | S | Q-01, Q-02 | Não |
 | Q-09 | Smoke em navegador real (SW, durabilidade, OAuth, Excel), não bloqueante | Média — testes | L | Q-03 | Sim (dependência) |
-| I-01 | CPF na query string nas duas pernas da consulta | Média — privacidade | M | S-02 | Não |
+| I-01 | CPF na query string nas duas pernas da consulta — *a perna do app saiu da URL com S-02; resta a do provedor, que não é nossa* | Média — privacidade | M | S-02 | Não |
 | I-02 | Drive sem refresh token: sessão morre em ~1 h | Média — integração | M | — | Sim (credencial) |
 | I-03 | Upload multipart sem cap de tamanho no cliente | Média — integração | S | — | Não |
 | I-04 | Import de JSON do Google Cloud inalcançável (`configured` sempre true) | Média — doc inexecutável | M | — | Sim (design) |
@@ -101,12 +107,26 @@
 - Aceite: teste que (i) após `lock()` o registro `meta/session` não existe, (ii) se o delete rejeita, a UI acusa estado não seguro, (iii) um dump de IndexedDB isolado não abre o cofre sem o `sessionStorage` do mesmo navegador.
 - Risco: alto (perde a conveniência de F5 destravado se mal implementado); exige corrida de sessão em navegador. Esforço M. **EXIGE AUTORIZAÇÃO (cofre)**.
 
-#### S-02 · `/api/cpf` como oráculo público, sem autenticação nem rate limit
-- Contexto/evidência: o único gate da função é o método (`api/cpf.js:14`), `:16-17` valida o CPF mas não valida quem chama, `:19-26` usa a chave do ambiente para consultar a APICPF. Verificado ao vivo: `GET /api/cpf?cpf=11144477735` sem credencial devolveu 200 (`3-seguranca.md:269-271` C2; `6-integracoes-infra.md:584-585` C-1/C-2).
-- Impacto: consumo da cota (100/dia, 6/min, `docs/apicpf.md:32`) negando a função ao app legítimo, custo em plano pago, chave servindo de credencial anônima para consultar PII de terceiros, e oracle de existência (200 vs 422).
-- Correção mínima: exigir `POST` com corpo, validar `Origin`/`Sec-Fetch-Site: same-origin`, cache de resposta por CPF com TTL no servidor, e rate limit por IP (Upstash/WAF ou Attack Challenge); acompanhar no cliente (`src/services/apicpf.js:24`) mantendo o contrato `{ok,data:{name,gender,birth}}` e os `reason`.
-- Aceite: sonda sem header de origem recebe 401/403; 100 chamadas simultâneas do mesmo IP não consomem 100 cotas; `tests/apicpf.test.mjs` atualizado cobre os novos casos e nenhum teste faz rede.
-- Risco: médio — mexe em contrato entre função e cliente (as duas pernas no mesmo PR). Esforço M. Sem autorização de cofre/schema.
+#### S-02 · `/api/cpf` como oráculo público, sem autenticação nem rate limit — **FEITO EM CÓDIGO NESTA BRANCH**
+- Estado: **concluído no repositório** — `api/cpf.js` foi reescrito, 48 → 138 linhas. O que não cabe no repositório virou **S-02a**; o que ficou aberto por compatibilidade virou **S-10**.
+- O que foi executado: `POST` com `{"cpf":"11 dígitos"}` no corpo, lido nos três formatos que o runtime entrega (`api/cpf.js:73-91`), cliente já migrado (`src/services/apicpf.js:28-33`); recusa de método fora de GET/POST (`api/cpf.js:94`), de `content-type` não-JSON **antes** de tocar no corpo (`:95-96`), de origem estrangeira (`:48-56`, aplicada em `:98`) e de corpo acima de 1 KiB (`:13`, `:85`, `:103`); cota de janela fixa por IP e por instância (`:58-69`, aplicada em `:99-100`) com `429` + `Retry-After` (`:100`); nenhum eco do CPF em resposta alguma (`:104-106,118-122`); `Cache-Control: no-store` preservado (`:30`). Envs novas com default: `CPF_QUOTA_WINDOW_MS` 60000, `CPF_QUOTA_PER_IP` 30, `CPF_QUOTA_PER_INSTANCE` 300, `SCIPIONE_ALLOWED_ORIGINS` vazio (`:15-17`, declaradas em `.env.example`).
+- O que **não** foi feito, sem rodeio: autenticação de chamador (a superfície continua anônima); leitura de `Sec-Fetch-Site` (grep: zero ocorrências em `api/`); **cache de resposta por CPF com TTL no servidor**, que o aceite original pedia — o cache continua sendo só o do navegador (`src/services/apicpf.js:3,43`); distribuição do limite entre instâncias e regiões (contador é estado de módulo: `api/cpf.js:19-25`); remoção do `GET` legado (**S-10**); teto de custo no edge (**S-02a**).
+- Correções ao critério de aceite, à luz do que foi medido: "sonda sem header de origem recebe 401/403" **não vale** — sem header o pedido segue, decisão explícita em `api/cpf.js:50` com caso de teste próprio (`tests/apicpf.test.mjs:443`), porque o navegador não envia `Origin` em GET same-origin; o que existe é recusa de origem **estrangeira declarada**. "100 chamadas simultâneas do mesmo IP não consomem 100 cotas" vale **dentro de uma instância e da janela** (`api/cpf.js:66`), não entre instâncias/regiões. A terceira exigência foi cumprida: `tests/apicpf.test.mjs` cobre os caminhos novos (40 casos) e nenhum teste faz rede, asserido no próprio arquivo (`tests/apicpf.test.mjs:571,578`).
+- Risco realizado: médio — mudou o contrato entre função e cliente nas duas pernas do mesmo PR; o amortecedor é o `GET` legado ainda aceito (`api/cpf.js:74-77`). **Nada visível para o usuário mudou**: o `429` cai no mesmo caminho silencioso de `UNAVAILABLE` (`src/services/apicpf.js:47`, `src/ui/clients.js:93`). Esforço M. Sem autorização de cofre/schema.
+
+#### S-02a · Criar regra de rate limit na WAF — **dashboard, fora do repo**
+- Contexto/evidência: a cota de `api/cpf.js:58-69` é estado de módulo de **cada instância aquecida**, e o contador da própria plataforma também é por região (comentário honesto em `api/cpf.js:19-22`). Não há como expressar isto no repositório: `vercel.json` não tem bloco `functions` nem regra de velocidade (`vercel.json:1-62`); o único canal de mitigação configurável como código (`routes[].mitigate`) aceita **somente `challenge` e `deny`** — rate limit, `log`, `bypass` e `redirect` não —; e o SDK `@vercel/firewall` é dependência externa, proibida pelo projeto (`README.md:157`, `package.json:1`).
+- Impacto: sem a regra, o teto efetivo de custo é `per_instance × instâncias aquecidas`, grandeza **não medida** neste repositório, e rotação de IP circorna `per_ip`. É a única barreira que cobra antes de a requisição chegar à função.
+- Ação, com os parâmetros sugeridos: Vercel → selecionar o projeto → **Firewall** na barra lateral → **Configure** → **+ New Rule**; condição `Request Path` · `Equals` · `/api/cpf`; ação **Rate Limit** · estratégia *Fixed Window* · **Time Window 60 s** · **Request Limit 60** · chave **IP** · ação final **`Too Many Requests (429)`**. Criar **primeiro como `Log`**, observar **10 minutos** no overview do Firewall e só então trocar para 429. Fechar com **Review Changes → Publish** — sem Publish a regra não vale em produção. Limites da plataforma: Hobby tem 1 regra de rate limit (dentro de 3 customizadas), chaves **IP** e **JA4 Digest**, janela de 10 s a 10 min.
+- Aceite: a regra existe e está publicada; uma sonda de 61 pedidos em 60 s do mesmo IP é bloqueada na borda **sem** chegar à função; a UI continua inalterada.
+- Risco: bloquear tráfego legítimo com teto baixo demais — daí o passo preliminar em `Log`. Esforço S (configuração; zero linha de código). **Não executável por agente: exige acesso ao painel do mantenedor.**
+
+#### S-10 · `GET /api/cpf?cpf=` legado aceito — deprecado, remoção sob condição explícita
+- Contexto/evidência: o ramo `GET` continua aceito e continua lendo `searchParams` (`api/cpf.js:74-77`) por um único motivo declarado no código (`:71-72`): bundles pré-cacheados em aparelhos já instalados chamam a forma antiga até o Service Worker atualizar. A versão canônica do cache é `V` em `sw.js:2` (`sc-v70`), mantida à mão — por isso o item depende de P-01.
+- Impacto: enquanto o ramo existir, o CPF pode voltar a aparecer em URL de entrada, exatamente a exposição que S-02 fechou para os bundles atuais. Fica **limitada** pela cota (`api/cpf.js:58-69`), não removida.
+- Condição de remoção (o que precisa ser verdade antes de apagar o ramo): nenhuma instalação servindo bundle anterior a `sc-v70`. Operacionalmente, o mantenedor observa os logs de acesso da plataforma e deixa de ver qualquer `GET /api/cpf?cpf=` por um período que **ele** fixa — **esse período não foi medido aqui, e não há telemetria no app que permita medi-lo** (zero canais de saída). Cumprida a condição: remover `api/cpf.js:74-77` e o teste de método em `:73-74`, deixando o `GET` cair no `405` de `:94`.
+- Aceite: `GET /api/cpf?cpf=...` responde `405 {reason:'METHOD'}`; os casos de POST de `tests/apicpf.test.mjs` permanecem verdes; `docs/API.md` registra a data da remoção.
+- Risco: médio — quebra o aparelho que nunca abriu o app desde o bundle antigo (sem SW novo, sem aviso). Esforço S. **EXIGE AUTORIZAÇÃO (dono: é decisão sobre instalação antiga, não sobre código).**
 
 #### S-03 · Downgrade de força do KDF por `iter`/`salt` não autenticados
 - Contexto/evidência: `src/export/backup-format.js:35` deriva com `m.iter` e `unhex(m.salt)` lidos do manifest do arquivo, sem piso/teto; `src/security/crypto.js:14` idem para o cofre; `unhex` aceita hex de qualquer comprimento (`backup-format.js:6`) — `3-seguranca.md:273-275` (C3), `4-backup-exportacao.md:261` (R-05).
@@ -156,11 +176,13 @@
 
 ### T2 — Integridade de dados e IndexedDB
 
-#### D-01 · `saveDebt` não verifica a existência do cliente
-- Contexto/evidência: `src/services/debts.js:14-16` grava com qualquer `clientId`; reproduzido em runtime no harness (`2-dados-negocio.md:168` caso F e `:419`).
-- Impacto: dívida órfã entra nos totais do painel (`src/services/dashboard.js:6`), não aparece em lugar nenhum por cliente, e passa a fazer o `validate` do backup rejeitar a restauração (`backup-format.js:24`).
-- Correção mínima: dentro de `saveDebt`, confirmar que `clientId` existe (leitura do cliente na mesma preparação que já cifra) e falhar com mensagem clara.
-- Aceite: teste com `clientId` inexistente rejeita; teste com cliente válido inalterado; script de diagnóstico que lista órfãos existentes (sem apagar nada). · **Risco**: baixo — só estreita escrita; telas que já dependem de lista obsoleta ganham erro explícito. Esforço S.
+#### D-01 · `saveDebt` aceita `clientId` inexistente (dívida órfã) — **FEITO EM CÓDIGO NESTA BRANCH**
+- O que foi executado: guarda em `src/services/debts.js:20` — `if(!clientId||!(await getClient(clientId)))` lança `Error('Cliente não encontrado. Atualize a tela e tente de novo.')` com `code:'NO_CLIENT'`. `getClient` passou a ser importado em `src/services/debts.js:1`.
+- **A ordem importa e foi mantida:** a checagem vem **depois** de `validate()` (`src/services/debts.js:15`), para que erro de campo continue voltando como `{errs}` e a UI pinte por campo; integridade referencial só é testada com payload já válido.
+- Efeito colateral encontrado em teste e corrigido: dívida **órfã legada** (dado anterior à guarda) fazia `src/ui/debtspage.js:16` resolver o cliente como `undefined`, e o submit estourava `TypeError: … reading 'id'` cru no parágrafo de erro — a mensagem nova nunca apareceria. Hoje `src/ui/debts.js:27` passa `c?.id`, o `undefined` chega ao serviço e vira a mensagem legível. Nenhuma linha de CSS, rótulo de botão, ícone ou estrutura de tela foi tocada.
+- Aceite cumprido (medido): `tests/svc/debts.test.mjs` com 23 casos (antes 17); teste de navegador contra a função serverless real — mensagem amigável, nenhum `TypeError`, store `debts` inalterada e **zero** linhas novas em `history`.
+- Aceite **não** cumprido: o "script de diagnóstico que lista órfãos existentes" não foi escrito — virou parte de **D-13**. E a guarda cobre criação/edição de dívida, não o histórico órfão — **D-12**.
+- Risco: baixo — só estreitou a escrita; telas que dependiam de lista obsoleta ganharam erro explícito. Esforço S. Sem `EXIGE AUTORIZAÇÃO`.
 
 #### D-02 · Corrida de duplicidade de documento fora da transação
 - Contexto/evidência: a unicidade é checada em `src/services/clients.js:11` usando `await listClients()` de `:17`, antes do `db.batch` de `:27`; nenhum índice `unique` (`src/db/idb.js:5`); duplicação reproduzida em runtime (`2-dados-negocio.md:163`, `:420`).
