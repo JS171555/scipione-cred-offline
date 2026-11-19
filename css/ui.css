@@ -184,6 +184,18 @@ input::file-selector-button:hover{background:#302c27}
     grid-template-columns:var(--photo-size) minmax(0,1fr)}}
 @media(min-width:1000px){
   .media-field{--photo-size:clamp(184px,15vw,216px);--photo-gap:22px}}
+/* Reposicionar a fotografia: a prévia circular vira área de arraste — toque no celular e no tablet,
+   mouse no computador, setas no teclado. A posição escolhida é guardada no cadastro e aplicada à imagem
+   em toda tela, então o recorte visto na prévia é o mesmo na lista, no perfil e em qualquer aparelho. */
+.media-field>.avatar.is-framable{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;transition:box-shadow .18s var(--ease)}
+.media-field>.avatar.is-framable img{-webkit-user-drag:none;user-select:none;will-change:object-position}
+.media-field>.avatar.is-framable.is-dragging{cursor:grabbing;box-shadow:0 0 0 2px var(--gold-strong)}
+.media-field>.avatar.is-framable:focus-visible{outline:2px solid var(--gold);outline-offset:3px;box-shadow:none}
+@media(hover:hover){.media-field>.avatar.is-framable:hover{box-shadow:0 0 0 2px var(--gold)}}
+/* Linha própria embaixo da prévia e da caixa de upload, em qualquer largura de tela. */
+.media-note{grid-column:1/-1;margin:-2px 0 0;font-size:.8rem;line-height:1.45;color:var(--muted);min-height:0}
+.media-note:empty{display:none}
 
 /* ---------- Busca ---------- */
 .search{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;border-radius:999px;background:var(--surface-2);

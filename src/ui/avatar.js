@@ -2,6 +2,7 @@
 import*as S from '../services/clients.js';
 import*as A from '../security/auth.js';
 import{initials}from './kit.js';
+import{framePos}from './photoFrame.js';
 const urls=new Map(),pending=new Map();
 let epoch=0;
 export function clearClientPhotos(){
@@ -23,7 +24,9 @@ export function clientAvatar(h,c){
     if(!u)return;
     if(my!==epoch){URL.revokeObjectURL(u);return}
     urls.set(id,u);
-    el.replaceChildren(h('img',{src:u,alt:'',decoding:'async'}));
+    const im=h('img',{src:u,alt:'',decoding:'async'}),ps=framePos(c.photoFrame);
+    if(ps)im.style.objectPosition=ps;   // reproduz o enquadramento escolhido no cadastro do cliente
+    el.replaceChildren(im);
   });
   return el;
 }

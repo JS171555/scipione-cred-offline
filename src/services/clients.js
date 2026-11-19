@@ -12,15 +12,20 @@ export function validate(d,old,all){
   for(const k of['phone','mobile']){const n=V.digits(d[k]).length;if(d[k]&&(n<10||n>11))e[k]='Informe DDD e número.'}
   if(d.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))e.email='E-mail inválido.';
   return e}
-// photo: undefined | {file} | {remove:true}
+// photo: undefined | {file} | {remove:true} | {frame}. `frame` é o enquadramento escolhido no arraste
+// da fotografia ({x,y} de 0 a 1; null = centralizada) e só mexe na foto, nunca no arquivo guardado.
+// Sem `frame`, a posição já registrada continua igual.
+const pos=f=>f&&Number.isFinite(f.x)&&Number.isFinite(f.y)?{x:Math.min(1,Math.max(0,f.x)),y:Math.min(1,Math.max(0,f.y))}:null;
 export async function saveClient(d,old,photo){
   const errs=validate(d,old,await listClients());
   if(Object.keys(errs).length)throw Object.assign(new Error('Corrija os campos destacados.'),{errs});
-  const id=old?.id||uid(),ops=[],now=Date.now();let photoId=old?.photoId||null,photoType=old?.photoType||null,ph='';
+  const id=old?.id||uid(),ops=[],now=Date.now();
+  let photoId=old?.photoId||null,photoType=old?.photoType||null,photoFrame=old?.photoFrame||null,ph='';
   if(photo?.file){const f=await toStored(photo.file,{force:true,maxSide:512}),bid=uid();ops.push(await blobOp(bid,f.bytes));
-    if(photoId)ops.push(['delete','blobs',photoId]);ph=photoId?'Fotografia alterada':'Fotografia incluída';photoId=bid;photoType=f.type}
-  else if(photo?.remove&&photoId){ops.push(['delete','blobs',photoId]);photoId=photoType=null;ph='Fotografia removida'}
-  ops.push(await enc('clients',{...d,id,photoId,photoType,createdAt:old?.createdAt||now,updatedAt:now}));
+    if(photoId)ops.push(['delete','blobs',photoId]);ph=photoId?'Fotografia alterada':'Fotografia incluída';photoId=bid;photoType=f.type;photoFrame=pos(photo.frame)}
+  else if(photo?.remove&&photoId){ops.push(['delete','blobs',photoId]);photoId=photoType=photoFrame=null;ph='Fotografia removida'}
+  else if(photo&&'frame'in photo){const p=pos(photo.frame);if(p?.x!==photoFrame?.x||p?.y!==photoFrame?.y){photoFrame=p;ph='Enquadramento da fotografia ajustado'}}
+  ops.push(await enc('clients',{...d,id,photoId,photoType,photoFrame,createdAt:old?.createdAt||now,updatedAt:now}));
   if(!old)ops.push(await hist(id,'Cadastro de cliente'));
   else{const ch=Object.keys(LABEL).filter(k=>(old[k]||'')!==(d[k]||''));if(ch.length)ops.push(await hist(id,'Alteração de dados',ch.map(k=>LABEL[k]).join(', ')))}
   if(ph)ops.push(await hist(id,ph));

@@ -1,4 +1,5 @@
 import*as V from '../domain/validators.js';import*as S from '../services/clients.js';import*as A from '../security/auth.js';import*as D from './debts.js';import*as CL from './clientlist.js';import*as P from './debtspage.js';import*as CEP from '../services/viacep.js';import*as CPF from '../services/apicpf.js';import{composeAddress,maskCep,onlyDigits,validCep}from '../domain/address.js';import{unwatch}from '../core/live.js';import{icon}from './icons.js';import{initials,when,filePicker,pager}from './kit.js';
+import{centerFrame,resetFrame,frameMoved,framePos,readFrame,canFrame,attachFraming}from './photoFrame.js';
 let X;const h=(...a)=>X.h(...a),urls=[];let stopForm=()=>{};
 const clean=()=>{stopForm();stopForm=()=>{};unwatch();urls.splice(0).forEach(u=>URL.revokeObjectURL(u));document.querySelectorAll('dialog.viewer').forEach(d=>d.close())};
 const render=(...n)=>{clean();X.show(...n)};A.onLock(clean);
@@ -15,7 +16,8 @@ export const debtsPageView=ctx=>{X=ctx;P.page(U,{home:X.home,open:profile,reopen
 export const openProfile=(ctx,id)=>{X=ctx;profile(id)};
 function list(q){return CL.clientList(U,{home:X.home,open:profile,newClient:()=>form(),bulk:()=>D.bulk(U,list)},typeof q==='string'?q:'')}
 function form(c={}){
-  let photo,previewUrl=null,previewSeq=0;const err=h('p',{class:'error',role:'alert'}),fe={},prev=h('div',{class:'avatar avatar--lg'},icon('camera',26));
+  let photo,previewUrl=null,previewSeq=0,fr=null,frame=readFrame(c.photoFrame)||centerFrame();const err=h('p',{class:'error',role:'alert'}),fe={},prev=h('div',{class:'avatar avatar--lg'},icon('camera',26)),mediaNote=h('p',{class:'media-note',role:'status','aria-live':'polite'});
+  const centerBtn=h('button',{type:'button',class:'ghost',hidden:true,onclick:()=>{resetFrame(frame);fr?.apply();mediaTip()},'aria-label':'Centralizar a fotografia na prévia'},'Centralizar');
   let lookupTimer=0,lookupSeq=0,lookupController=null,noteTimer=0,cpfTimer=0,cpfSeq=0,cpfController=null;
   const note=h('p',{class:'field-note',role:'status','aria-live':'polite'});
   const setNote=(text,warn=false)=>{clearTimeout(noteTimer);note.textContent=text;note.classList.toggle('is-warn',!!warn);
@@ -23,7 +25,7 @@ function form(c={}){
   const docStatus=h('p',{class:'cpf-status',role:'status','aria-live':'polite'});
   const setDocStatus=(text,kind='')=>{docStatus.textContent=text;docStatus.className='cpf-status'+(kind?' is-'+kind:'')};
   const clearCpf=()=>{clearTimeout(cpfTimer);cpfSeq++;cpfController?.abort();cpfController=null;setDocStatus('')};
-  const dispose=()=>{clearTimeout(lookupTimer);clearTimeout(noteTimer);lookupSeq++;lookupController?.abort();lookupController=null;clearCpf()};
+  const dispose=()=>{clearTimeout(lookupTimer);clearTimeout(noteTimer);lookupSeq++;lookupController?.abort();lookupController=null;clearCpf();stopFrame()};
   const fld=(id,label,type='text',ac,full=false,span2=false)=>{const e=h('small',{class:'error'});fe[id]=e;return h('div',{class:'field'+(full?' field--full':'')+(span2?' field--span2':''),id:'f-'+id},h('label',{for:id},label),h('input',{id,type,autocomplete:ac,value:c[id]||''}),e)};
   const docField=fld('doc','CPF','text','off');
   docField.insertBefore(docStatus,docField.querySelector('small.error'));
@@ -33,17 +35,37 @@ function form(c={}){
       h('option',{value:'F',selected:c.gender==='F'},'Feminino'),
       h('option',{value:'M',selected:c.gender==='M'},'Masculino'),
       h('option',{value:'I',selected:c.gender==='I'},'Outro')));
+  const stopFrame=()=>{fr?.stop();fr=null};
+  const offPreview=()=>{prev.classList.remove('is-framable','is-dragging');prev.removeAttribute('tabindex');prev.removeAttribute('role');prev.removeAttribute('aria-label')};
+  const mediaTip=()=>{const ok=prev.classList.contains('is-framable'),moved=frameMoved(frame);
+    mediaNote.textContent=!ok?'':moved?'Enquadramento ajustado: ao salvar, a fotografia aparece assim no perfil e na lista.':'Arraste a fotografia para ajustar o enquadramento. No computador, as setas do teclado também movem a imagem.';
+    centerBtn.hidden=!ok||!moved};
+  const bindFrame=img=>{stopFrame();
+    if(canFrame(img,prev)){prev.classList.add('is-framable');prev.tabIndex=0;prev.setAttribute('role','button');
+      prev.setAttribute('aria-label','Arrastar a fotografia para ajustar o enquadramento');fr=attachFraming(img,prev,frame,mediaTip)}
+    else offPreview();
+    mediaTip()};
+  // O que o arraste mudou em relação ao enquadramento salvo: undefined = nada, null = volta ao centro,
+  // objeto = nova posição. Centralizar depois de ter ajustado precisa ser gravado, não ignorado.
+  const samePos=(a,b)=>!a&&!b||!!a&&!!b&&Math.abs(a.x-b.x)<=.001&&Math.abs(a.y-b.y)<=.001;
+  const frameChange=()=>{const nf=frameMoved(frame)?{x:frame.x,y:frame.y}:null;return samePos(nf,readFrame(c.photoFrame))?undefined:nf};
   const paint=async()=>{const seq=++previewSeq;let u=null;
     if(photo?.file){u=URL.createObjectURL(photo.file);urls.push(u)}
     else if(!photo?.remove&&c.photoId){try{u=url(await S.blobBytes(c.photoId),c.photoType)}catch{return}}
     if(seq!==previewSeq||!prev.isConnected){if(u)URL.revokeObjectURL(u);return}
     if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=u;
-    prev.replaceChildren(u?h('img',{src:u,alt:'Fotografia do cliente'}):icon('camera',26))};
+    if(!u){stopFrame();offPreview();mediaTip();prev.replaceChildren(icon('camera',26));return}
+    const img=h('img',{src:u,alt:'Fotografia do cliente',draggable:'false'});
+    img.style.objectPosition=framePos(frame);
+    prev.replaceChildren(img);
+    try{await img.decode()}catch{}
+    if(seq===previewSeq&&prev.isConnected&&img.parentNode===prev)bindFrame(img)};
   const removeClient=async()=>{if(!c.id)return;err.textContent='';try{const cnt=await S.counts(c.id);if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;await S.deleteClient(c.id);list()}catch(x){err.textContent=x.message}};
   const btn=h('button',{class:'primary',type:'submit'},c.id?'Salvar alterações':'Cadastrar cliente');
   const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');btn.disabled=true;
     const g=k=>f.elements[k].value.trim(),t=g('type'),a=composeAddress({street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),state:g('state')});
-    try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),birth:t==='PF'?g('birth'):'',gender:t==='PF'?g('gender'):'',rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),cep:g('cep'),state:g('state'),street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),address:a},c.id?c:null,photo))}
+    const fr=frameChange(),p=photo?{...photo,frame:fr}:fr!==undefined?{frame:fr}:undefined;
+    try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),birth:t==='PF'?g('birth'):'',gender:t==='PF'?g('gender'):'',rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),cep:g('cep'),state:g('state'),street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),address:a},c.id?c:null,p))}
     catch(x){for(const[k,m]of Object.entries(x.errs||{}))fe[k].textContent=m;err.textContent=x.message}finally{btn.disabled=false}}},
     h('h2',{},'Dados do cliente'),
     h('section',{class:'form-section','aria-labelledby':'personal-title'},
@@ -52,8 +74,9 @@ function form(c={}){
         h('div',{class:'field field--full'},
           h('label',{for:'photo'},'Fotografia'),
           h('div',{class:'media-field'},prev,
-            h('div',{class:'media-body'},filePicker(h,h('input',{id:'photo',type:'file',accept:'image/*',onchange:e=>{if(e.target.files[0]){photo={file:e.target.files[0]};paint()}}}),'Escolher foto')),
-            h('div',{class:'actions'},h('button',{type:'button',class:'ghost',onclick:()=>{photo={remove:true};f.elements.photo.value='';f.elements.photo.dispatchEvent(new Event('change'));paint()}},'Remover fotografia')))),
+            h('div',{class:'media-body'},filePicker(h,h('input',{id:'photo',type:'file',accept:'image/*',onchange:e=>{if(e.target.files[0]){photo={file:e.target.files[0]};resetFrame(frame);paint()}}}),'Escolher foto')),
+            h('div',{class:'actions'},centerBtn,h('button',{type:'button',class:'ghost',onclick:()=>{photo={remove:true};resetFrame(frame);f.elements.photo.value='';f.elements.photo.dispatchEvent(new Event('change'));paint()}},'Remover fotografia'))),
+          mediaNote),
         h('div',{class:'field'},h('label',{for:'type'},'Tipo de cliente'),h('select',{id:'type'},h('option',{value:'PF',selected:c.type!=='PJ'},'Pessoa Física'),h('option',{value:'PJ',selected:c.type==='PJ'},'Pessoa Jurídica'))),
         docField,
         fld('name','Nome completo','text','name',true),
@@ -136,7 +159,7 @@ async function profile(id){
   if(!A.isUnlocked())return;
   const err=h('p',{class:'error',role:'alert'}),run=fn=>async(...a)=>{err.textContent='';try{await fn(...a);profile(id)}catch(x){err.textContent=x.message}};
   const av=h('div',{class:'avatar avatar--lg'},h('span',{class:'muted'},initials(c.name)));
-  if(c.photoId)S.blobBytes(c.photoId).then(b=>{if(!av.isConnected)return;av.replaceChildren(h('img',{src:url(b,c.photoType),alt:'Fotografia de '+c.name}))}).catch(()=>{});
+  if(c.photoId)S.blobBytes(c.photoId).then(b=>{if(!av.isConnected)return;const im=h('img',{src:url(b,c.photoType),alt:'Fotografia de '+c.name});if(c.photoFrame)im.style.objectPosition=framePos(c.photoFrame);av.replaceChildren(im)}).catch(()=>{});
   const rep=h('input',{type:'file',accept:'image/*',hidden:true,onchange:run(e=>e.target.files[0]&&S.changePhoto(c,{file:e.target.files[0]}))});
   const row=(k,v,wide)=>h('div',{class:wide?'wide':''},h('dt',{},k),h('dd',{},v||'—')),pj=c.type==='PJ';
   const cat=h('select',{id:'cat'},S.CATS.map(x=>h('option',{value:x},x))),nm=h('input',{id:'dn'}),fl=h('input',{id:'df',type:'file',accept:'image/*,application/pdf,.doc,.docx'});
