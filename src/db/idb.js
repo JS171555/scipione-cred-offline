@@ -6,6 +6,10 @@ const MIGRATIONS=[db=>{
   idx('clients','createdAt');idx('debts','clientId','createdAt');idx('documents','clientId');
   db.createObjectStore('blobs',{keyPath:'id'});      // fotos/documentos cifrados
   idx('history','clientId','at');
+},db=>{
+  const plans=db.createObjectStore('installment_plans',{keyPath:'id'});
+  plans.createIndex('clientId','clientId');
+  plans.createIndex('debtId','debtId',{unique:true});
 }];
 export const DB_VERSION=MIGRATIONS.length;
 let p;
@@ -23,8 +27,22 @@ export const get=(s,k)=>run(s,'readonly',t=>t.objectStore(s).get(k));
 export const getAll=s=>run(s,'readonly',t=>t.objectStore(s).getAll());
 export const put=(s,v)=>run(s,'readwrite',t=>t.objectStore(s).put(v));
 export const del=(s,k)=>run(s,'readwrite',t=>t.objectStore(s).delete(k));
-// Várias operações em UMA transação (tudo ou nada). Cifre os dados antes: ops = [['put'|'delete', store, valor|chave]].
+// Várias operações em UMA transação (tudo ou nada). Cifre os dados antes: ops = ['put'|'add'|'delete', store, valor|chave].
 export const batch=async ops=>{if(!ops.length)return;const db=await openDB();return new Promise((res,rej)=>{
   const t=db.transaction([...new Set(ops.map(o=>o[1]))],'readwrite',{durability:'strict'});
   try{for(const[op,s,v]of ops)t.objectStore(s)[op](v)}catch(e){t.abort();return rej(e)}
   t.oncomplete=()=>{res();dispatchEvent(new Event('data-changed'))};t.onerror=t.onabort=()=>rej(t.error||new Error('Falha na gravação.'));});};
+// Verifica snapshots e grava em uma transação única; evita baixa duplicada em abas/dispositivos concorrentes.
+export const compareAndBatch=async(checks,ops)=>{if(!checks.length)throw new Error('Verificação transacional inválida.');const database=await openDB();return new Promise((resolve,reject)=>{
+  const stores=[...new Set([...checks.map(x=>x[0]),...ops.map(x=>x[1])])],t=database.transaction(stores,'readwrite',{durability:'strict'});
+  let left=checks.length,failure=null,actual=[];
+  const abort=e=>{failure=e;try{t.abort()}catch{reject(e)}};
+  t.oncomplete=()=>{dispatchEvent(new Event('data-changed'));resolve()};
+  t.onerror=t.onabort=()=>reject(failure||t.error||new Error('Falha na operação transacional.'));
+  checks.forEach(([store,key,expected],i)=>{const req=t.objectStore(store).get(key);req.onsuccess=()=>{
+    actual[i]=req.result;
+    if(--left)return;
+    if(checks.some(([, ,snapshot],j)=>JSON.stringify(actual[j])!==JSON.stringify(snapshot))){abort(new Error('Os dados mudaram desde a consulta. Recarregue e tente novamente.'));return}
+    try{for(const[op,name,value]of ops)t.objectStore(name)[op](value)}catch(e){abort(e)}
+  }});
+});};

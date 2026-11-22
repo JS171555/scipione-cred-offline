@@ -7,7 +7,7 @@ const MAP=[[/^Voltar/,'back'],[/^(Novo cliente|Nova dívida|Adicionar documento)
   [/^(Baixar|Exportar|Gerar backup|Instalar)/,'download'],[/^(Pesquisar|Buscar)/,'search'],[/^Juros em lote/,'percent'],
   [/^Imprimir/,'print'],[/^Bloquear/,'lock'],[/^Sair/,'logout'],[/^Testar/,'shield'],[/^(Verificar|Restaurar)/,'upload'],
   [/^Confirmar/,'check'],[/^Salvar janela/,'check'],[/^Relatórios/,'file']];
-export function initShell({ctx,home,clients,debts,reports,backup,settings,lock}){
+export function initShell({ctx,home,clients,debts,installments,reports,backup,settings,lock}){
   const{h}=ctx(),nav=document.getElementById('nav'),root=document.getElementById('app');
   let navBusy=null,navTimer=0,navStarted=0;
   const navClear=()=>{if(navBusy){navBusy.classList.remove('is-loading');navBusy.removeAttribute('aria-busy');navBusy=null}root.removeAttribute('aria-busy');clearTimeout(navTimer)};
@@ -29,7 +29,7 @@ export function initShell({ctx,home,clients,debts,reports,backup,settings,lock})
     h('div',{class:'nb'},h('span',{class:'mark','aria-hidden':'true'},h('img',{src:'assets/img/hat.webp',alt:''})),
       h('span',{class:'brandtext'},h('span',{class:'word'},'SCIPIONE CRED'),h('span',{class:'sub'},'Gestão de crédito'))),
     item('home','Início','home',()=>home()),item('clients','Clientes','users',()=>clients(ctx())),
-    item('debts','Dívidas','wallet',()=>debts(ctx())),item('reports','Relatórios','file',()=>reports(ctx())),
+    item('debts','Dívidas','wallet',()=>debts(ctx())),item('installments','Parcelamentos','calendar',()=>installments(ctx())),item('reports','Relatórios','file',()=>reports(ctx())),
     item('backup','Backup','db',()=>backup(ctx())),
     h('div',{class:'sp'}),
     item('settings','Configurações','gear',()=>settings(ctx()),'settings'),

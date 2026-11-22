@@ -1,6 +1,6 @@
 import * as A from './security/auth.js';
 import*as P from './pwa.js';
-import{clientsView,debtsPageView,openProfile}from './ui/clients.js';import*as Dash from './ui/dashboard.js';import{reportsView,backupView}from './ui/tools.js';import{settingsView}from './ui/settings.js';import{initShell}from './ui/shell.js';import{unwatch}from './core/live.js';import{longDay}from './ui/kit.js';
+import{clientsView,debtsPageView,openProfile}from './ui/clients.js';import{installmentsView}from'./ui/installments.js';import*as Dash from './ui/dashboard.js';import{reportsView,backupView}from './ui/tools.js';import{settingsView}from './ui/settings.js';import{initShell}from './ui/shell.js';import{unwatch}from './core/live.js';import{longDay}from './ui/kit.js';
 const root=document.getElementById('app');
 const h=(t,a={},...k)=>{const e=document.createElement(t);for(const[n,v]of Object.entries(a)){if(n.startsWith('on'))e.addEventListener(n.slice(2),v);else if(v!==false&&v!=null)e.setAttribute(n,v===true?'':v)}e.append(...k.flat().filter(x=>x!=null&&x!==false));return e};
 const show=(...n)=>root.replaceChildren(...n);
@@ -62,4 +62,4 @@ A.onLock(r=>authView(false,r==='idle'?'Bloqueado por inatividade.':r==='logout'?
 P.registerSW();
 (async()=>{try{const has=await A.hasVault();if(has&&await A.restoreSession()){await appView();return}authView(!has)}catch(e){show(h('div',{class:'card auth'},h('h2',{},'Não foi possível abrir o banco local'),h('p',{class:'error'},fmt(e))))}})();
 
-initShell({ctx,home:()=>appView(),clients:clientsView,debts:debtsPageView,reports:reportsView,backup:backupView,settings:settingsView,lock:A.lock});
+initShell({ctx,home:()=>appView(),clients:clientsView,debts:debtsPageView,installments:installmentsView,reports:reportsView,backup:backupView,settings:settingsView,lock:A.lock});

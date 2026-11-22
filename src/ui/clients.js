@@ -39,7 +39,7 @@ function form(c={}){
     if(seq!==previewSeq||!prev.isConnected){if(u)URL.revokeObjectURL(u);return}
     if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=u;
     prev.replaceChildren(u?h('img',{src:u,alt:'Fotografia do cliente'}):icon('camera',26))};
-  const removeClient=async()=>{if(!c.id)return;err.textContent='';try{const cnt=await S.counts(c.id);if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s) e todo o histórico deste cliente. Não é possível desfazer.`))return;await S.deleteClient(c.id);list()}catch(x){err.textContent=x.message}};
+  const removeClient=async()=>{if(!c.id)return;err.textContent='';try{const cnt=await S.counts(c.id);if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s), ${cnt.installments} parcelamento(s) e todo o histórico deste cliente. Parcelamentos com parcelas baixadas impedem a exclusão para preservar o histórico financeiro. Não é possível desfazer.`))return;await S.deleteClient(c.id);list()}catch(x){err.textContent=x.message}};
   const btn=h('button',{class:'primary',type:'submit'},c.id?'Salvar alterações':'Cadastrar cliente');
   const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');btn.disabled=true;
     const g=k=>f.elements[k].value.trim(),t=g('type'),a=composeAddress({street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),state:g('state')});

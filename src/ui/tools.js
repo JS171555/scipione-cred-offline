@@ -45,8 +45,8 @@ export function backupView(X){
     parsed=await B.readBackup(new Uint8Array(await f.arrayBuffer()),rpw.value||undefined);const c=parsed.manifest.counts,mode=h('select',{id:'rm'},h('option',{value:'merge'},'Mesclar com os dados atuais'),h('option',{value:'replace'},'Substituir tudo'));
     const go=h('button',{class:'primary',onclick:async()=>{clear();const rep=mode.value==='replace';
       if(!confirm(rep?'ATENÇÃO: todos os clientes, dívidas, documentos e histórico atuais serão APAGADOS e substituídos pelo backup. Se necessário, gere um backup do estado atual antes. Continuar?':'Os dados do backup serão adicionados. Clientes com o mesmo CPF/CNPJ não serão duplicados. Continuar?'))return;
-      go.disabled=true;try{const s=await B.restore(parsed.data,mode.value);ok.textContent=`Restauração concluída: ${s.clients} cliente(s), ${s.debts} dívida(s), ${s.documents} documento(s), ${s.history} registro(s) de histórico.`;info.replaceChildren();parsed=null}catch(x){err.textContent='Nada foi alterado. '+x.message;go.disabled=false}}},'Restaurar');
-    info.replaceChildren(h('p',{},`Backup de ${new Date(parsed.manifest.createdAt).toLocaleString('pt-BR')}: ${c.clients} cliente(s), ${c.debts} dívida(s), ${c.documents} documento(s), ${c.history} registro(s) de histórico. Integridade verificada.`),fld(h,'rm','Modo de restauração',mode),h('div',{class:'actions'},go))}
+      go.disabled=true;try{const s=await B.restore(parsed.data,mode.value);ok.textContent=`Restauração concluída: ${s.clients} cliente(s), ${s.debts} dívida(s), ${s.documents} documento(s), ${s.history} registro(s) de histórico e ${s.installment_plans||0} parcelamento(s).`;info.replaceChildren();parsed=null}catch(x){err.textContent='Nada foi alterado. '+x.message;go.disabled=false}}},'Restaurar');
+    info.replaceChildren(h('p',{},`Backup de ${new Date(parsed.manifest.createdAt).toLocaleString('pt-BR')}: ${c.clients} cliente(s), ${c.debts} dívida(s), ${c.documents} documento(s), ${c.history} registro(s) de histórico e ${c.installment_plans||0} parcelamento(s). Integridade verificada.`),fld(h,'rm','Modo de restauração',mode),h('div',{class:'actions'},go))}
     catch(x){err.textContent=x.message}finally{check.disabled=false}}},'Verificar arquivo');
 
   // Google Drive: um segundo destino, com autenticação e lista próprias. O fluxo local acima não é alterado.
@@ -160,10 +160,10 @@ export function backupView(X){
           clearDrive();const rep=gMode.value==='replace';
           if(!confirm(rep?'ATENÇÃO: todos os clientes, dívidas, documentos e histórico atuais serão APAGADOS e substituídos pelo backup. Se necessário, gere um backup do estado atual antes. Continuar?':'Os dados do backup serão adicionados. Clientes com o mesmo CPF/CNPJ não serão duplicados. Continuar?'))return;
           go.disabled=true;
-          try{const s=await B.restore(driveParsed.data,gMode.value);dOk.textContent=`Restauração concluída: ${s.clients} cliente(s), ${s.debts} dívida(s), ${s.documents} documento(s), ${s.history} registro(s) de histórico.`;gInfo.replaceChildren();driveParsed=null}
+          try{const s=await B.restore(driveParsed.data,gMode.value);dOk.textContent=`Restauração concluída: ${s.clients} cliente(s), ${s.debts} dívida(s), ${s.documents} documento(s), ${s.history} registro(s) de histórico e ${s.installment_plans||0} parcelamento(s).`;gInfo.replaceChildren();driveParsed=null}
           catch(x){dErr.textContent='Nada foi alterado. '+x.message;go.disabled=false}
         }},'Restaurar');
-        gInfo.replaceChildren(h('p',{},`Backup de ${when(driveParsed.manifest.createdAt)}: ${c.clients} cliente(s), ${c.debts} dívida(s), ${c.documents} documento(s), ${c.history} registro(s) de histórico. Integridade verificada.`),h('div',{class:'actions'},go));
+        gInfo.replaceChildren(h('p',{},`Backup de ${when(driveParsed.manifest.createdAt)}: ${c.clients} cliente(s), ${c.debts} dívida(s), ${c.documents} documento(s), ${c.history} registro(s) de histórico e ${c.installment_plans||0} parcelamento(s). Integridade verificada.`),h('div',{class:'actions'},go));
       }catch(x){driveFail(x)}finally{gCheck.disabled=false}
     }},'Verificar backup');
 

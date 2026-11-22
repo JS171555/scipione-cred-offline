@@ -27,9 +27,11 @@ export async function saveClient(d,old,photo){
   await db.batch(ops);return id}
 export const changePhoto=(c,p)=>saveClient(c,c,p);
 const rel=async(s,id)=>(await db.getAll(s)).filter(r=>r.clientId===id);
-export const counts=async id=>({docs:(await rel('documents',id)).length,debts:(await rel('debts',id)).length});
+export const counts=async id=>({docs:(await rel('documents',id)).length,debts:(await rel('debts',id)).length,installments:(await rel('installment_plans',id)).length});
 export async function deleteClient(id){
   const c=await getClient(id);if(!c)return;const ops=[];
+  const plans=(await db.getAll('installment_plans')).filter(r=>r.clientId===id);
+  for(const p of plans){const full=await one('installment_plans',p.id);if(full?.items?.some(x=>x.paidAt))throw new Error('Este cliente possui parcelas baixadas e não pode ser excluído sem preservar o histórico financeiro.');ops.push(['delete','installment_plans',p.id])}
   for(const d of await listDocs(id))ops.push(['delete','documents',d.id],['delete','blobs',d.blobId]);
   for(const s of['debts','history'])for(const r of await rel(s,id))ops.push(['delete',s,r.id]);
   if(c.photoId)ops.push(['delete','blobs',c.photoId]);ops.push(['delete','clients',id]);await db.batch(ops)}

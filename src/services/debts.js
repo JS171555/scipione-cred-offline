@@ -4,15 +4,17 @@ const LABEL={description:'Descrição',principal:'Valor',date:'Data do registro'
 const rec=d=>({id:d.id,clientId:d.clientId,createdAt:d.createdAt,description:d.description,principal:d.principal,rate:d.rate,date:d.date,due:d.due,notes:d.notes||'',updatedAt:d.updatedAt});
 const withI=d=>({...d,interest:M.interest(d.principal,d.rate)}); // juros sempre derivados: uma única fonte da verdade
 export const listDebts=async cid=>(await list('debts')).filter(d=>!cid||d.clientId===cid).map(withI).sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
-export function validate(d){const e={};
+export function validate(d,{allowZero=false}={}){const e={};
   if(!d.description)e.description='Informe a descrição.';
-  if(!(d.principal>0&&d.principal<=1e13))e.principal='Informe um valor maior que zero.';
+  if(!(d.principal>=(allowZero?0:1)&&d.principal<=1e13))e.principal='Informe um valor maior que zero.';
   if(!(d.rate>0&&d.rate<=M.MAXR))e.rate='Informe uma taxa entre 0,01% e 1000%.';
   if(!iso(d.date))e.date='Data inválida.';
   if(!iso(d.due))e.due='Informe o vencimento.';else if(!e.date&&d.due<d.date)e.due='O vencimento não pode ser anterior ao registro.';
   return e}
 export async function saveDebt(clientId,d,old){
-  const errs=validate(d);if(Object.keys(errs).length)throw Object.assign(new Error('Corrija os campos destacados.'),{errs});
+  const linked=old&&(await db.getAll('installment_plans')).some(p=>p.debtId===old.id);
+  if(linked&&d.principal!==old.principal)throw Object.assign(new Error('O principal desta dívida está vinculado a um parcelamento e não pode ser alterado.'),{errs:{principal:'Saldo comprometido por parcelamento.'}});
+  const errs=validate(d,{allowZero:!!linked&&d.principal===0});if(Object.keys(errs).length)throw Object.assign(new Error('Corrija os campos destacados.'),{errs});
   const now=Date.now(),r=rec({...d,id:old?.id||uid(),clientId,createdAt:old?.createdAt||now,updatedAt:now}),ops=[await enc('debts',r)];
   if(!old)ops.push(await hist(clientId,'Dívida cadastrada',`${r.description}: ${M.brl(r.principal)} a ${M.rate(r.rate)} ao mês`));
   else{
@@ -21,7 +23,10 @@ export async function saveDebt(clientId,d,old){
     if(old.rate!==r.rate)ops.push(await hist(clientId,'Juros alterados',`${r.description}: ${M.rate(old.rate)} → ${M.rate(r.rate)}`));
   }
   await db.batch(ops);return r.id}
-export const deleteDebt=async d=>db.batch([['delete','debts',d.id],await hist(d.clientId,'Dívida excluída',`${d.description}: ${M.brl(d.principal)}`)]);
+export const deleteDebt=async d=>{
+  if((await db.getAll('installment_plans')).some(p=>p.debtId===d.id))throw new Error('Esta dívida possui um parcelamento vinculado e não pode ser excluída.');
+  await db.batch([['delete','debts',d.id],await hist(d.clientId,'Dívida excluída',`${d.description}: ${M.brl(d.principal)}`)]);
+};
 export async function findByRate(r){const cs=new Map((await listClients()).map(c=>[c.id,c.name]));
   return(await listDebts()).filter(d=>d.rate===r).map(d=>({...d,clientName:cs.get(d.clientId)||'—'})).sort((a,b)=>a.clientName.localeCompare(b.clientName,'pt-BR'))}
 // Aplica a prévia inteira em UMA transação; recusa se algo mudou desde a busca.

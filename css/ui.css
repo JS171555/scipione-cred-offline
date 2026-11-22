@@ -257,6 +257,23 @@ ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;fo
 .split .empty{flex:1;align-content:center}
 .empty{display:grid;justify-items:center;gap:8px;padding:22px 18px;border-radius:var(--r-xl);background:var(--surface);
   color:var(--muted);font-size:.9rem;text-align:center;margin:0}
+.installment-section{margin-top:24px}
+.installment-section>h2{margin:0 0 16px}
+.installment-plan .section-head{align-items:flex-start}
+.installment-plan .section-head h2{font-family:var(--font-sans);font-size:1rem;line-height:1.4}
+.installment-plan .section-head p{margin:5px 0 0;font-size:.85rem}
+.installment-table-wrap{width:100%;overflow-x:auto;border-radius:12px;-webkit-overflow-scrolling:touch}
+.installment-table{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+.installment-table th,.installment-table td{padding:11px 12px;text-align:left;white-space:nowrap}
+.installment-table th{color:var(--muted);font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.installment-table tbody tr{background:var(--surface-2)}
+.installment-table tbody tr+tr{border-top:5px solid var(--surface)}
+.installment-table input[type=checkbox]{display:block;margin:auto}
+.installment-form .summary{margin:8px 0 0}
+.installment-form .subhead{margin-top:20px}
+.installment-form .installment-table-wrap{margin-top:10px}
+.installment-plan .installment-table-wrap{margin-top:4px}
+.installment-plan .badge{flex:none}
 .empty>.i{color:var(--faint)}
 .empty p{margin:0}
 .card-foot{display:flex;justify-content:flex-end;margin:14px 0 0}
