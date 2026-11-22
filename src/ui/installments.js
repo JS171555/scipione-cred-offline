@@ -18,10 +18,12 @@ export async function installmentsView({h,show,home}){
   const err=h('p',{class:'error',role:'alert'}),balance=h('p',{class:'summary'}),debtSelect=h('select',{id:'installment-debt'}),preview=h('div'),plansOut=h('div');
   const clientResults=h('div',{id:'installment-client-results',class:'client-search-results',role:'listbox','aria-label':'Resultados da busca de clientes',hidden:true});
   const selectedClient=h('div',{class:'selected-client-row',hidden:true});
-  const clientInput=h('input',{id:'installment-client-search',type:'search',autocomplete:'off',placeholder:'Buscar por nome, CPF/CNPJ, telefone ou e-mail','aria-label':'Buscar clientes para o parcelamento','aria-controls':'installment-client-results','aria-autocomplete':'list',oninput:e=>{
+  const clientInput=h('input',{id:'installment-client-search',type:'search',autocomplete:'off',placeholder:'Buscar por nome, CPF/CNPJ, telefone ou e-mail','aria-label':'Buscar clientes para o parcelamento','aria-controls':'installment-client-results','aria-autocomplete':'list',onfocus:()=>{if(state.clientId)clientInput.select()},oninput:e=>{
+    const hadClient=!!state.clientId;
     state.clientQuery=e.target.value;
-    if(state.clientId){state.clientId='';state.debtId=''}
-    paintClientSearch();paintForm();
+    if(hadClient){state.clientId='';state.debtId=''}
+    paintClientSearch();
+    if(hadClient){syncDebtSelect();paintPreview()}
   }});
   const clientPicker=h('div',{class:'client-picker'},h('div',{class:'search'},icon('search',18),clientInput),clientResults,selectedClient);
   const countInput=h('input',{id:'installment-count',type:'number',min:'1',max:'60',step:'1',value:state.count,inputmode:'numeric',oninput:e=>{state.count=e.target.value;paintPreview()}});
@@ -66,10 +68,16 @@ export async function installmentsView({h,show,home}){
           h('tbody',{},rows.map(x=>h('tr',{},h('td',{},String(x.number)),h('td',{},M.brl(x.amountCents)),h('td',{},dBR(x.dueDate))))))));
     }catch{preview.replaceChildren()}
   };
-  const paintForm=()=>{
+  const syncDebtSelect=()=>{
     const opts=eligible();
     debtSelect.replaceChildren(h('option',{value:''},state.clientId?'Selecione uma dívida':'Selecione primeiro um cliente'),...opts.map(d=>h('option',{value:d.id,selected:d.id===state.debtId},debtDescription(d))));
     if(!opts.some(d=>d.id===state.debtId))state.debtId='';
+    const submit=planForm.querySelector('button[type=submit]');
+    if(submit)submit.disabled=!state.debtId;
+    debtSelect.onchange=e=>{state.debtId=e.target.value;if(submit)submit.disabled=!state.debtId;paintPreview()};
+  };
+  const paintForm=()=>{
+    syncDebtSelect();
     const submit=h('button',{type:'submit',class:'primary',disabled:!state.debtId},'Gerar parcelamento');
     debtSelect.onchange=e=>{state.debtId=e.target.value;submit.disabled=!state.debtId;paintPreview()};
     planForm.replaceChildren(h('h2',{},'Criar parcelamento'),
