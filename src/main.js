@@ -31,9 +31,9 @@ function authView(setup,notice){
     setup&&h('label',{class:'check'},h('input',{type:'checkbox',id:'ack'}),'Entendo que, se eu esquecer a senha, os dados não poderão ser recuperados.'),
     err,btn,
     h('p',{class:'foot'},'Criptografia AES-GCM · chave derivada com PBKDF2 · nada sai do aparelho'));
-  const brand=h('div',{class:'brand'},
-    h('span',{class:'mark brand-mark','aria-hidden':'true'},h('img',{src:'assets/img/hat.webp',alt:''})),
-    h('h1',{},'SCIPIONE CRED'),h('p',{class:'tag'},'Gestão de clientes e dívidas'));
+  const brand=h('div',{class:'brand brand--login'},
+    h('img',{class:'brand-logo',src:'assets/img/scipione-cred-logo.png',alt:'SCIPIONE Cred'}),
+    h('p',{class:'tag'},'Gestão de clientes e dívidas'));
   const visual=h('section',{class:'auth-visual','aria-hidden':'true'},
     h('img',{class:'auth-photo',src:'assets/img/office.webp',alt:''}),
     h('img',{class:'auth-photo alt',src:'assets/img/office-desk.webp',alt:''}),
