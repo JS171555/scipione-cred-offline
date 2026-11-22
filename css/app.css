@@ -55,6 +55,10 @@ button,input,select,textarea{font-family:inherit}
 .report td.n{text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums}
 .report tfoot td{font-weight:700;background:#efe9dc;border-bottom:0;border-top:1px solid #b89a62}
 .report tbody tr:last-child td{border-bottom:1px solid #d8cfbe}
+.report-plan{margin-top:1.2rem}
+.report-plan+.report-plan{padding-top:.9rem;border-top:1px solid #d8cfbe}
+.report-plan h2{margin:0 0 .45rem;font-family:var(--font-sans);font-size:1rem;line-height:1.35;letter-spacing:0;color:#34302a}
+.report-plan>p{font-size:.85rem}
 
 @media print{
   html,body{background:#fff}

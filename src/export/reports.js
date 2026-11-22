@@ -1,9 +1,16 @@
-import{listDebts}from '../services/debts.js';import{listClients}from '../services/clients.js';import{list}from '../services/records.js';
-import{fflate}from './lib.js';import{buildXlsx}from './xlsx.js';
-const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],dBR=s=>s?s.split('-').reverse().join('/'):'—';
+import{listDebts}from'../services/debts.js';
+import{listClients}from'../services/clients.js';
+import{list}from'../services/records.js';
+import{listPlans}from'../services/installments.js';
+import{fflate}from'./lib.js';
+import{buildXlsx}from'./xlsx.js';
+
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const dBR=s=>s?s.split('-').reverse().join('/'):'—';
 export const inPeriod=(iso,p)=>p.mode==='day'?iso===p.value:iso.slice(0,7)===p.value;
 export const isoOf=ts=>new Date(ts-new Date(ts).getTimezoneOffset()*6e4).toISOString().slice(0,10);
 export const label=p=>p.mode==='day'?'Dia '+dBR(p.value):`${MESES[+p.value.slice(5,7)-1]}/${p.value.slice(0,4)}`;
+
 // Dívidas registradas no período (data do registro) + movimentações do histórico ocorridas no período.
 export async function load(p){
   const cs=new Map((await listClients()).map(c=>[c.id,c.name])),nm=id=>cs.get(id)||'—';
@@ -11,6 +18,12 @@ export async function load(p){
   const moves=(await list('history')).filter(e=>inPeriod(isoOf(e.createdAt),p)).sort((a,b)=>a.createdAt-b.createdAt).map(e=>({...e,client:nm(e.clientId)}));
   const sum=k=>debts.reduce((t,d)=>t+d[k],0);return{debts,moves,principal:sum('principal'),interest:sum('interest')};
 }
+
+export const installmentsInPeriod=(plans,p)=>plans.filter(plan=>inPeriod(plan.startDate,p));
+export async function loadInstallments(p){
+  return{plans:installmentsInPeriod(await listPlans(),p)};
+}
+
 export async function xlsxBytes(d){
   const H=t=>({v:t,s:1});
   const debts=[['Nome do cliente','Juros valor no mês','Valor emprestado','%','Data','Observações'].map(H),
@@ -18,4 +31,16 @@ export async function xlsxBytes(d){
     [{v:'TOTAL',s:4},{v:d.interest/100,s:5},{v:d.principal/100,s:5},'','','']];
   const moves=[['Data e hora','Cliente','Operação','Detalhe'].map(H),...d.moves.map(e=>[new Date(e.createdAt).toLocaleString('pt-BR'),e.client,e.type,e.detail||''])];
   return buildXlsx(await fflate(),[{name:'Dívidas',rows:debts,widths:[30,20,20,10,12,40]},{name:'Movimentações',rows:moves,widths:[20,30,28,50]}]);
+}
+
+export async function installmentsXlsxBytes(d){
+  const H=t=>({v:t,s:1}),debtName=p=>p.debt?.description||'—';
+  const plans=[['Nome do cliente','Dívida','Quantidade de parcelas','Total','Início','Vencimento da 1ª parcela'].map(H),
+    ...d.plans.map(p=>[p.clientName,debtName(p),p.count,{v:p.totalCents/100,s:2},dBR(p.startDate),dBR(p.firstDueDate)])];
+  const items=[['Nome do cliente','Dívida','Parcela','Valor','Vencimento','Situação'].map(H),
+    ...d.plans.flatMap(p=>(p.items||[]).map(item=>[p.clientName,debtName(p),item.number,{v:item.amountCents/100,s:2},dBR(item.dueDate),item.paidAt?'Paga':'Em aberto']))];
+  return buildXlsx(await fflate(),[
+    {name:'Parcelamentos',rows:plans,widths:[30,32,22,18,16,24]},
+    {name:'Parcelas',rows:items,widths:[30,32,12,18,16,16]}
+  ]);
 }

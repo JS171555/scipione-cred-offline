@@ -4,10 +4,13 @@ const top=(h,page,t,back)=>h('header',{class:'top','data-page':page},
   h('div',{class:'head'},h('button',{type:'button',class:'iconbtn back','aria-label':'Voltar',onclick:back},icon('back',20)),h('h1',{},t)));
 const fld=(h,id,l,el,full)=>h('div',{class:'field'+(full?' field--full':'')},h('label',{for:id},l),el);
 export function reportsView(X){
-  unwatch();const{h,show,home}=X;let mode='month';
+  unwatch();const{h,show,home}=X;let mode='month',kind='debts';
   const err=h('p',{class:'error',role:'alert'}),paper=h('div',{class:'report port',role:'region','aria-label':'Pré-visualização do relatório'});
   const dayI=h('input',{id:'pd',type:'date',value:todayISO()}),monI=h('input',{id:'pn',type:'month',value:todayISO().slice(0,7)}),dv=fld(h,'pd','Data',dayI),mv=fld(h,'pn','Mês',monI);dv.hidden=true;
-  const pm=h('select',{id:'pm',onchange:e=>{mode=e.target.value;dv.hidden=mode!=='day';mv.hidden=mode!=='month'}},h('option',{value:'month'},'Movimentações do mês'),h('option',{value:'day'},'Movimentações do dia'));
+  const pm=h('select',{id:'pm',onchange:e=>{mode=e.target.value;dv.hidden=mode!=='day';mv.hidden=mode!=='month'}});
+  const typeSelect=h('select',{id:'rt',onchange:e=>{kind=e.target.value;syncPeriodOptions();paper.replaceChildren()}},h('option',{value:'debts'},'Dívidas e movimentações'),h('option',{value:'installments'},'Parcelamentos'));
+  const syncPeriodOptions=()=>{pm.replaceChildren(h('option',{value:'month'},kind==='installments'?'Início do parcelamento no mês':'Movimentações do mês'),h('option',{value:'day'},kind==='installments'?'Início do parcelamento no dia':'Movimentações do dia'));pm.value=mode};
+  syncPeriodOptions();
   const po=h('select',{id:'po'},h('option',{value:'port'},'Retrato (A4)'),h('option',{value:'land'},'Paisagem (A4)'));
   const period=()=>{const value=mode==='day'?dayI.value:monI.value;if(!value)throw new Error('Selecione o período.');return{mode,value}};
   const run=fn=>async()=>{err.textContent='';try{await fn()}catch(x){err.textContent=x.message}};
@@ -18,13 +21,22 @@ export function reportsView(X){
       h('tbody',{},d.debts.map(x=>h('tr',{},h('td',{},x.client),h('td',{class:'n'},M.brl(x.interest)),h('td',{class:'n'},M.brl(x.principal)),h('td',{class:'n'},M.rate(x.rate)),h('td',{},dBR(x.due)),h('td',{},x.notes||x.description)))),
       h('tfoot',{},h('tr',{},h('td',{},`Total (${d.debts.length})`),h('td',{class:'n'},M.brl(d.interest)),h('td',{class:'n'},M.brl(d.principal)),h('td',{colspan:3})))))):h('p',{},'Nenhuma dívida registrada neste período.'),
     h('p',{},'Data: vencimento de cada dívida.')];
+  const installmentReport=(p,d)=>[h('h1',{},'SCIPIONE CRED'),h('p',{},h('strong',{},'Relatório de parcelamentos'),` — ${R.label(p)}`),h('p',{},`Gerado em ${new Date().toLocaleString('pt-BR')}`),
+    d.plans.length?h('div',{},h('p',{class:'report-hint'},'Deslize a tabela para o lado para ver todas as colunas.'),...d.plans.map(plan=>h('section',{class:'report-plan'},
+      h('h2',{},`${plan.clientName} · ${plan.debt?.description||'—'}`),
+      h('p',{},`${plan.count} ${plan.count===1?'parcela':'parcelas'} · Total: ${M.brl(plan.totalCents)} · Início: ${dBR(plan.startDate)} · 1º vencimento: ${dBR(plan.firstDueDate)}`),
+      h('div',{class:'tw'},h('table',{},h('thead',{},h('tr',{},h('th',{},'Parcela'),h('th',{class:'n'},'Valor'),h('th',{},'Vencimento'),h('th',{},'Situação'))),
+        h('tbody',{},(plan.items||[]).map(item=>h('tr',{},h('td',{},String(item.number)),h('td',{class:'n'},M.brl(item.amountCents)),h('td',{},dBR(item.dueDate)),h('td',{},item.paidAt?'Paga':'Em aberto'))))))))):h('p',{},'Nenhum parcelamento iniciado neste período.'),
+    h('p',{},'Período considerado: início do parcelamento.')];
   show(top(h,'reports','Relatórios',home),
     h('section',{class:'card'},h('h2',{},'Período e formato'),
-      h('div',{class:'form-grid'},fld(h,'pm','Período',pm),dv,mv,fld(h,'po','Orientação da impressão',po,true)),
+      h('div',{class:'form-grid'},fld(h,'rt','Tipo de relatório',typeSelect),fld(h,'pm','Período',pm),dv,mv,fld(h,'po','Orientação da impressão',po,true)),
       h('div',{class:'actions actions--grid'},
-        h('button',{class:'primary span-2',onclick:run(async()=>{const p=period();paper.className='report '+po.value;paper.replaceChildren(...report(p,await R.load(p)))})},'Visualizar relatório'),
-        h('button',{onclick:run(async()=>{const p=period(),d=await R.load(p);if(!d.debts.length&&!d.moves.length)throw new Error('Nenhum registro neste período.');
-          save(new Blob([await R.xlsxBytes(d)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`scipione-cred-${p.value}.xlsx`)})},'Exportar Excel'),
+        h('button',{class:'primary span-2',onclick:run(async()=>{const p=period(),d=kind==='debts'?await R.load(p):await R.loadInstallments(p);paper.className='report '+po.value;paper.replaceChildren(...(kind==='debts'?report(p,d):installmentReport(p,d)))})},'Visualizar relatório'),
+        h('button',{onclick:run(async()=>{const p=period(),d=kind==='debts'?await R.load(p):await R.loadInstallments(p);
+          if(kind==='debts'?!d.debts.length&&!d.moves.length:!d.plans.length)throw new Error('Nenhum registro neste período.');
+          const bytes=kind==='debts'?await R.xlsxBytes(d):await R.installmentsXlsxBytes(d),name=kind==='debts'?`scipione-cred-${p.value}.xlsx`:`scipione-cred-parcelamentos-${p.value}.xlsx`;
+          save(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),name)})},'Exportar Excel'),
         h('button',{onclick:run(async()=>{if(!paper.childElementCount)throw new Error('Visualize o relatório antes de imprimir.');paper.className='report '+po.value;print()})},'Imprimir')),
       err),paper);
 }
