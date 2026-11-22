@@ -270,6 +270,8 @@ ul.sub{list-style:none;margin:8px 0 0;padding:0 0 0 58px;display:grid;gap:6px;fo
 .installment-plan .section-head{align-items:flex-start}
 .installment-plan .section-head h2{font-family:var(--font-sans);font-size:1rem;line-height:1.4}
 .installment-plan .section-head p{margin:5px 0 0;font-size:.85rem}
+.installment-plan-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.installment-plan-actions button{min-height:42px;padding:0 12px;border-radius:12px}
 .installment-table-wrap{width:100%;overflow-x:auto;border-radius:12px;-webkit-overflow-scrolling:touch}
 .installment-table{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
 .installment-table th,.installment-table td{padding:11px 12px;text-align:left;white-space:nowrap}

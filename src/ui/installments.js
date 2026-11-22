@@ -82,12 +82,22 @@ export async function installmentsView({h,show,home}){
     if(!plans.length){plansOut.replaceChildren(h('p',{class:'empty'},icon('wallet',26),'Nenhum parcelamento cadastrado.'));return}
     plansOut.replaceChildren(...plans.map(p=>{
       const debt=p.debt,rows=(p.items||[]).map(item=>h('tr',{},h('td',{},String(item.number)),h('td',{},M.brl(item.amountCents)),h('td',{},dBR(item.dueDate)),
-        h('td',{},h('input',{type:'checkbox',checked:!!item.paidAt,disabled:!!item.paidAt,'aria-label':`Marcar parcela ${item.number} como paga`,onchange:async e=>{
-          if(!e.target.checked)return;err.textContent='';e.target.disabled=true;
-          try{await S.markPaid(p.id,item.number)}catch(x){err.textContent=x.message;await load()}
+        h('td',{},h('input',{type:'checkbox',checked:!!item.paidAt,'aria-label':`${item.paidAt?'Desmarcar':'Marcar'} parcela ${item.number} ${item.paidAt?'como não paga':'como paga'}`,onchange:async e=>{
+          const checkbox=e.currentTarget;checkbox.disabled=true;err.textContent='';
+          try{await S.setPaid(p.id,item.number,checkbox.checked);await load()}
+          catch(x){err.textContent=x.message;await load()}
+          finally{if(checkbox.isConnected)checkbox.disabled=false}
         }}))));
+      const remove=h('button',{type:'button',class:'danger',onclick:async e=>{
+        const current=debt?M.brl(debt.principal):'não disponível';
+        if(!globalThis.confirm(`Excluir o parcelamento de ${p.clientName} · ${debt?.description||'dívida'}?\n\nO saldo atual da dívida (${current}) será mantido exatamente como está. Valores de parcelas já marcadas como pagas continuarão descontados.`))return;
+        const button=e.currentTarget;button.disabled=true;err.textContent='';
+        try{await S.deletePlan(p.id);await load()}
+        catch(x){err.textContent=x.message;await load()}
+        finally{if(button.isConnected)button.disabled=false}
+      }},'Excluir parcelamento');
       return h('section',{class:'card installment-plan'},h('div',{class:'section-head'},h('div',{},h('h2',{},`${p.clientName} · ${debt?.description||'Dívida não encontrada'}`),h('p',{class:'muted'},`Saldo atual da dívida: ${M.brl(debt?.principal||0)}`)),
-          h('span',{class:'badge'},`${p.count} ${p.count===1?'parcela':'parcelas'}`)),
+          h('div',{class:'installment-plan-actions'},h('span',{class:'badge'},`${p.count} ${p.count===1?'parcela':'parcelas'}`),remove)),
         h('div',{class:'installment-table-wrap'},h('table',{class:'installment-table'},h('thead',{},h('tr',{},h('th',{},'Parcela'),h('th',{},'Valor'),h('th',{},'Vencimento'),h('th',{},'Marcar'))),h('tbody',{},rows))));
     }));
   };

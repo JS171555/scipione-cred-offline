@@ -21,3 +21,13 @@ export function splitInstallments(totalCents,count,firstDueDate){
   const base=Math.floor(totalCents/count),remainder=totalCents%count;
   return Array.from({length:count},(_,i)=>({number:i+1,amountCents:base+(i<remainder?1:0),dueDate:addMonths(firstDueDate,i),paidAt:null}));
 }
+
+export function principalAfterInstallment(principalCents,amountCents,paid){
+  if(typeof paid!=='boolean')throw new Error('Informe o status da parcela.');
+  if(!Number.isSafeInteger(principalCents)||principalCents<0)throw new Error('Saldo da dívida inválido.');
+  if(!Number.isSafeInteger(amountCents)||amountCents<=0)throw new Error('Valor da parcela inválido.');
+  const next=principalCents+(paid?-amountCents:amountCents);
+  if(!Number.isSafeInteger(next))throw new Error('O saldo da dívida excede o limite seguro.');
+  if(next<0)throw new Error('O saldo da dívida mudou e não cobre esta parcela. Recarregue os dados.');
+  return next;
+}

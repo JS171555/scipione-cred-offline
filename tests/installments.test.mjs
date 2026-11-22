@@ -1,6 +1,6 @@
 import assert from'node:assert/strict';
 import{test}from'node:test';
-import{addMonths,splitInstallments,validDate}from'../src/domain/installments.js';
+import{addMonths,splitInstallments,validDate,principalAfterInstallment}from'../src/domain/installments.js';
 
 test('divide o principal em centavos e distribui o resto sem alterar o total',()=>{
   const rows=splitInstallments(1001,3,'2026-12-22');
@@ -39,4 +39,18 @@ test('rejeita quantidades, saldos e datas inválidas',()=>{
   assert.throws(()=>splitInstallments(100,61,'2026-11-22'));
   assert.throws(()=>splitInstallments(0,1,'2026-11-22'));
   assert.throws(()=>splitInstallments(100,1,'2026-02-30'));
+});
+
+test('marcar parcela desconta do principal e desmarcar devolve exatamente o valor',()=>{
+  const original=10000,amount=2500;
+  const afterPaid=principalAfterInstallment(original,amount,true);
+  assert.equal(afterPaid,7500);
+  assert.equal(principalAfterInstallment(afterPaid,amount,false),original);
+  assert.equal(principalAfterInstallment(principalAfterInstallment(original,amount,true),amount,false),original);
+});
+
+test('rejeita estorno com saldo fora do limite seguro e status inválido',()=>{
+  assert.throws(()=>principalAfterInstallment(100,101,true),/não cobre/);
+  assert.throws(()=>principalAfterInstallment(Number.MAX_SAFE_INTEGER,1,false),/limite seguro/);
+  assert.throws(()=>principalAfterInstallment(100,1,'sim'),/status/);
 });

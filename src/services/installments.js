@@ -2,7 +2,7 @@ import*as db from '../db/idb.js';
 import{list,one,enc,hist,uid}from'./records.js';
 import{getKey}from'../security/auth.js';
 import{openJSON}from'../security/crypto.js';
-import{splitInstallments,validDate}from'../domain/installments.js';
+import{splitInstallments,validDate,principalAfterInstallment}from'../domain/installments.js';
 import*as M from'../domain/money.js';
 import{listClients}from'./clients.js';
 
@@ -38,20 +38,37 @@ export async function createPlan({clientId,debtId,count,startDate,firstDueDate})
   return plan.id;
 }
 
-export async function markPaid(planId,number){
-  const[rawPlan]=await Promise.all([db.get('installment_plans',planId)]);
+export async function setPaid(planId,number,paid){
+  if(typeof paid!=='boolean')throw new Error('Informe se a parcela ficará marcada como paga.');
+  const rawPlan=await db.get('installment_plans',planId);
   if(!rawPlan)throw new Error('Parcelamento não encontrado.');
   const plan=await decode(rawPlan),item=plan.items?.find(x=>x.number===number);
   if(!item)throw new Error('Parcela não encontrada.');
-  if(item.paidAt)throw new Error('Esta parcela já foi baixada.');
+  if(!!item.paidAt===paid)return;
   const rawDebt=await db.get('debts',plan.debtId);
   if(!rawDebt)throw new Error('A dívida vinculada não foi encontrada.');
   const debt=await decode(rawDebt);
   if(debt.clientId!==plan.clientId)throw new Error('O vínculo da dívida está inconsistente.');
-  if(!Number.isSafeInteger(debt.principal)||debt.principal<item.amountCents)throw new Error('O saldo da dívida mudou e não cobre esta parcela. Recarregue os dados.');
-  const now=Date.now();item.paidAt=now;plan.updatedAt=now;
-  const updatedDebt={...debt,principal:debt.principal-item.amountCents,updatedAt:now};
+  const principal=principalAfterInstallment(debt.principal,item.amountCents,paid);
+  const now=Date.now();item.paidAt=paid?now:null;plan.updatedAt=now;
+  const updatedDebt={...debt,principal,updatedAt:now};
   const planOp=await planRecord(plan),debtOp=await enc('debts',updatedDebt);
+  const type=paid?'Parcela baixada':'Baixa de parcela desfeita';
+  const detail=`Parcela ${item.number}/${plan.count}: ${M.brl(item.amountCents)} · saldo da dívida atualizado para ${M.brl(principal)}`;
   await db.compareAndBatch([['installment_plans',planId,rawPlan],['debts',plan.debtId,rawDebt]],
-    [planOp,debtOp,await hist(plan.clientId,'Parcela baixada',`Parcela ${item.number}/${plan.count}: ${M.brl(item.amountCents)} · dívida atualizada`)]);
+    [planOp,debtOp,await hist(plan.clientId,type,detail)]);
+}
+
+// Mantido para compatibilidade com chamadas existentes; a UI usa setPaid para alternar livremente.
+export const markPaid=(planId,number)=>setPaid(planId,number,true);
+
+export async function deletePlan(planId){
+  const rawPlan=await db.get('installment_plans',planId);
+  if(!rawPlan)throw new Error('Parcelamento não encontrado.');
+  const plan=await decode(rawPlan),rawDebt=await db.get('debts',plan.debtId);
+  const debt=rawDebt?await decode(rawDebt):null;
+  const checks=[['installment_plans',planId,rawPlan],['debts',plan.debtId,rawDebt]];
+  const balance=debt?`Saldo da dívida mantido em ${M.brl(debt.principal)}.`:'A dívida vinculada não foi alterada.';
+  const op=['delete','installment_plans',planId];
+  await db.compareAndBatch(checks,[op,await hist(plan.clientId,'Parcelamento excluído',`${plan.count} parcela(s). ${balance} As parcelas já baixadas continuam descontadas.`)]);
 }
