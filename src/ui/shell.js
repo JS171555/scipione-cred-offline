@@ -39,6 +39,7 @@ export function initShell({ctx,home,clients,debts,installments,reports,backup,se
       if(hd.querySelector(':scope > .util'))continue;
       const util=h('div',{class:'util'});
       if(hd.dataset.page!=='settings')util.append(h('button',{type:'button',class:'iconbtn util-settings','aria-label':'Configurações',title:'Configurações',onclick:()=>settings(ctx())},icon('gear',20)));
+      util.append(h('button',{type:'button',class:'iconbtn util-backup','aria-label':'Backup',title:'Backup',onclick:()=>backup(ctx())},icon('db',20)));
       util.append(h('button',{type:'button',class:'iconbtn','aria-label':'Bloquear cofre',title:'Bloquear',onclick:()=>lock('manual')},icon('lock',20)),
         h('button',{type:'button',class:'iconbtn','aria-label':'Sair da conta',title:'Sair',onclick:()=>lock('logout')},icon('logout',20)));
       hd.append(util);
