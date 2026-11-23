@@ -27,6 +27,7 @@ h3{font-size:1.08rem}
 /* ---------- Marca ---------- */
 .mark{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:0;overflow:visible;background:#080808}
 .mark img{display:block;width:100%;height:100%;object-fit:contain}
+.nav-brand-logo{display:none;width:min(100%,172px);max-height:56px;height:auto;min-width:0;flex:0 1 172px;object-fit:contain;object-position:left center}
 .brandbar{display:flex;align-items:center;gap:12px;margin:0 0 26px}
 .brandbar .head{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
 .brandbar .home-brand-logo{display:block;width:min(100%,190px);max-height:58px;height:auto;min-width:0;flex:0 1 190px;object-fit:contain;object-position:left center}
@@ -533,7 +534,7 @@ body.authing main>*{width:auto;max-width:none}
   #nav .nb{display:grid;place-items:center;padding:0 0 24px}
   .brandbar .mark{display:none}
   #nav .nb .mark{width:42px;height:42px}
-  #nav .nb .brandtext{display:none}
+  #nav .nb .nav-brand-logo{display:none}
   #nav button{flex:none;min-height:64px;padding:8px 2px;font-size:.62rem;gap:5px}
   #nav .sp{display:block;flex:1}
   #nav .lock,#nav .out,#nav .settings{display:flex;min-height:48px}
@@ -548,8 +549,7 @@ body.authing main>*{width:auto;max-width:none}
 @media(min-width:1100px){
   #nav{width:264px;padding:28px 16px 22px;gap:2px}
   #nav .nb{display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px 30px}
-  #nav .nb .brandtext{display:grid}
-  #nav .nb .word{font-size:.74rem;letter-spacing:.16em}
+  #nav .nb .nav-brand-logo{display:block}
   header.top.brandbar{display:none}
   #nav button{flex-direction:row;justify-content:flex-start;gap:12px;min-height:48px;padding:10px 14px;font-size:.92rem;font-weight:500}
   #nav button span{overflow:visible;text-overflow:clip}

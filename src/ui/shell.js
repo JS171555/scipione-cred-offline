@@ -27,7 +27,7 @@ export function initShell({ctx,home,clients,debts,installments,reports,backup,se
   addEventListener('data-changed',()=>setTimeout(()=>{for(const b of[...busyButtons])if(b.type!=='submit')busyStop(b)},650));
   nav.replaceChildren(
     h('div',{class:'nb'},h('span',{class:'mark','aria-hidden':'true'},h('img',{src:'assets/img/hat.webp',alt:''})),
-      h('span',{class:'brandtext'},h('span',{class:'word'},'SCIPIONE CRED'),h('span',{class:'sub'},'Gestão de crédito'))),
+      h('img',{class:'nav-brand-logo',src:'assets/img/scipione-cred-logo.png',alt:'SCIPIONE CRED'})),
     item('home','Início','home',()=>home()),item('clients','Clientes','users',()=>clients(ctx())),
     item('debts','Dívidas','wallet',()=>debts(ctx())),item('installments','Parcelamentos','calendar',()=>installments(ctx())),item('reports','Relatórios','file',()=>reports(ctx())),
     item('backup','Backup','db',()=>backup(ctx())),
