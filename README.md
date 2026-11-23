@@ -68,9 +68,9 @@ Um cofre que roda inteiro no navegador: os dados ficam no seu aparelho, cifrados
 
 ## Para quem é e para quem não é
 
-**Serve bem** a quem empresta dinheiro, trabalha com crédito informal ou gerencia cobranças e quer controle total dos dados: cadastro de clientes, dívidas com juros mensais, vencimentos, documentos anexos, relatórios em A4 e backups verificáveis.
+**Serve bem** a quem empresta dinheiro, trabalha com crédito informal ou gerencia cobranças e quer controle total dos dados: cadastro de clientes, dívidas com juros mensais, vencimentos, parcelamentos, baixa de parcelas, documentos anexos, relatórios A4 e backups verificáveis.
 
-**Não serve** a quem precisa de contabilidade, emissão de contrato, cobrança automática ou multiusuário. Também não sincroniza aparelhos por conta própria e não tem *quituação*: enquanto a dívida existir, ela conta no saldo.
+**Não serve** a quem precisa de contabilidade, emissão de contrato, cobrança automática ou multiusuário. Também não sincroniza aparelhos por conta própria; a baixa financeira ocorre pelas parcelas de um plano, não por um fluxo independente de quitação.
 
 ---
 
@@ -87,43 +87,45 @@ Um cofre que roda inteiro no navegador: os dados ficam no seu aparelho, cifrados
 
 ## Telas
 
+As capturas abaixo foram feitas na versão atual, em um cofre local isolado e com dados fictícios de demonstração; não há dados de clientes reais.
+
 <table>
   <tr>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/login-desktop.webp" alt="Tela de criação do cofre com a senha mestra"><br>
-      <sub><b>Abertura do cofre</b><br>Senha mestra com confirmação explícita de que não há recuperação.</sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/dashboard-desktop.webp" alt="Painel com saldo total, juros mensais e clientes"><br>
-      <sub><b>Painel</b><br>Saldo, juros do mês, base ativa e alertas de vencimento.</sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="docs/screenshots/clients-desktop.webp" alt="Lista de clientes com busca, ordenação e filtro por taxa"><br>
-      <sub><b>Clientes</b><br>Busca, ordenação, filtro por taxa e ajuste de juros em lote.</sub>
-    </td>
+    <td align="center" width="33%"><img src="docs/screenshots/login-desktop.webp" alt="Primeiro acesso ao cofre em desktop"><br><sub><b>Acesso</b><br>Criação do cofre local, sem recuperação de senha.</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/dashboard-desktop.webp" alt="Painel atual com saldo, juros, vencimentos e atividades"><br><sub><b>Painel</b><br>Saldo, juros, vencimentos, clientes e atividades recentes.</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/clients-desktop.webp" alt="Clientes filtrados por taxa percentual com soma do principal"><br><sub><b>Clientes</b><br>Busca, inicial alfabética e filtro de taxa com soma do principal.</sub></td>
   </tr>
   <tr>
-    <td align="center">
-      <img src="docs/screenshots/debts-desktop.webp" alt="Lista de dívidas com filtros e resumo de valores"><br>
-      <sub><b>Dívidas</b><br>Valor, taxa, registro, vencimento e situação de cada dívida.</sub>
-    </td>
-    <td align="center">
-      <img src="docs/screenshots/profile-desktop.webp" alt="Perfil do cliente com dívidas, documentos e histórico"><br>
-      <sub><b>Perfil</b><br>Dados, dívidas, documentos anexos e histórico do cliente.</sub>
-    </td>
-    <td align="center">
-      <img src="docs/screenshots/reports-desktop.webp" alt="Relatório A4 com pré-visualização e exportação para Excel"><br>
-      <sub><b>Relatórios</b><br>A4 retrato ou paisagem, pré-visualização, impressão e Excel.</sub>
-    </td>
+    <td align="center" width="33%"><img src="docs/screenshots/debts-desktop.webp" alt="Dívidas filtradas pela taxa mensal selecionada"><br><sub><b>Dívidas</b><br>Filtros de taxa e situação, com resumo recalculado.</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/profile-desktop.webp" alt="Perfil de demonstração com dívidas e histórico"><br><sub><b>Perfil</b><br>Cadastro, saldo, dívidas e histórico de atividades.</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/reports-desktop.webp" alt="Relatório A4 de dívidas e movimentações"><br><sub><b>Relatório de dívidas</b><br>Pré-visualização A4, impressão e exportação Excel.</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/installments-desktop.webp" alt="Prévia de um parcelamento com seis parcelas"><br><sub><b>Parcelamentos</b><br>Prévia do valor e vencimento de cada parcela.</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/installment-reports-desktop.webp" alt="Relatório A4 de parcelamentos com situação das parcelas"><br><sub><b>Relatório de parcelas</b><br>Planos por período, valores, vencimentos e situação.</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/backup-desktop.webp" alt="Tela atual de backup e restauração"><br><sub><b>Backup</b><br>Backup criptografado e restauração local ou pelo Drive.</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/settings-desktop.webp" alt="Configurações atuais do sistema"><br><sub><b>Configurações</b><br>Segurança, integridade, instalação e vencimentos.</sub></td>
+    <td colspan="2"></td>
   </tr>
 </table>
 
 <table>
   <tr>
-    <td align="center" width="25%"><img src="docs/screenshots/dashboard-mobile.webp" alt="Painel no celular"><br><sub>Painel</sub></td>
-    <td align="center" width="25%"><img src="docs/screenshots/clients-mobile.webp" alt="Lista de clientes no celular"><br><sub>Clientes</sub></td>
-    <td align="center" width="25%"><img src="docs/screenshots/debts-mobile.webp" alt="Dívidas no celular"><br><sub>Dívidas</sub></td>
-    <td align="center" width="25%"><img src="docs/screenshots/settings-mobile.webp" alt="Configurações no celular"><br><sub>Configurações</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/login-mobile.webp" alt="Tela de acesso ao cofre no celular"><br><sub>Acesso</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/dashboard-mobile.webp" alt="Painel no celular"><br><sub>Painel</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/clients-mobile.webp" alt="Filtro alfabético e por taxa na lista mobile"><br><sub>Clientes e filtros</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/debts-mobile.webp" alt="Dívidas no celular"><br><sub>Dívidas</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/profile-mobile.webp" alt="Perfil do cliente no celular"><br><sub>Perfil</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/reports-mobile.webp" alt="Pré-visualização mobile do relatório de dívidas"><br><sub>Relatório de dívidas</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/installments-mobile.webp" alt="Parcelas registradas e baixadas no celular"><br><sub>Parcelamentos</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/installment-reports-mobile.webp" alt="Relatório mobile de parcelas"><br><sub>Relatório de parcelas</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/settings-mobile.webp" alt="Configurações no celular"><br><sub>Configurações</sub></td>
   </tr>
 </table>
 
@@ -138,7 +140,9 @@ A navegação muda com a largura: barra inferior até 767 px, *rail* de 96 px en
 - Pessoa física ou jurídica, com máscara e validação de dígito verificador de CPF/CNPJ.
 - Dados pessoais, contatos, endereço completo (CEP, rua, número, complemento, bairro, cidade, UF), foto e documentos anexos.
 - Busca por nome, e-mail ou RG ignorando acentos e caixa, e por dígitos em CPF, CNPJ, RG, telefone ou celular quando o texto é numérico.
-- Ordenação, filtro por taxa de juros e lista paginada com 20 clientes por página.
+- Ordenação A–Z/Z–A ou por data; filtro alfabético por uma inicial individual, combinável com a busca.
+- Filtro pela taxa mensal selecionada: exibe clientes com dívidas naquela taxa, detalha os valores correspondentes e soma o principal filtrado.
+- Lista paginada com 20 clientes por página.
 - Ajuste de taxa de juros em lote com pré-visualização antes de gravar.
 - Perfil do cliente reunindo dados, dívidas, documentos e histórico paginado (5 eventos por página).
 - Consulta de CEP pelo ViaCEP quando há conexão; offline os campos continuam editáveis.
@@ -148,20 +152,30 @@ A navegação muda com a largura: barra inferior até 767 px, *rail* de 96 px en
 - Descrição, valor emprestado, taxa mensal, data de registro, vencimento e observações.
 - Juros sempre derivados do par *valor × taxa*: não existe campo de juros avulso, então nada diverge do cadastro.
 - Situação por dívida: **vencida**, **prestes a vencer** (dentro da janela configurável) ou **em dia**.
-- Lista paginada com 10 dívidas por página, com resumo de emprestado e juros do mês.
+- Filtros por taxa mensal, cliente e situação; ordenação por data mais recente ou mais antiga.
+- Lista paginada com 10 dívidas por página; quantidade, principal emprestado e juros mensais refletem os filtros ativos.
 - Ajuste em lote aplicado em uma única transação, recusado se os dados mudaram desde a busca.
 - Validações do domínio: valor maior que zero e até `R$ 100.000.000.000,00`, taxa entre 0,01% e 1000%, vencimento não anterior ao registro.
+
+### Parcelamentos
+
+- Gere de 1 a 60 parcelas para uma dívida com saldo positivo, informando a data de início e o primeiro vencimento. Uma dívida pode ter apenas um parcelamento ativo.
+- A prévia distribui o principal em centavos e mantém a soma exatamente igual ao saldo; vencimentos seguintes avançam mês a mês, sem acrescentar juros às parcelas.
+- Marcar uma parcela como paga desconta seu valor do principal; desfazer a baixa devolve exatamente o mesmo valor. A projeção de juros continua usando o principal restante.
+- O plano reúne parcelas, vencimentos e situação (paga ou em aberto). Excluir o plano mantém o saldo atual da dívida; valores já baixados não são revertidos.
 
 ### Painel, relatórios e Excel
 
 - Métricas em tempo real: saldo total, projeção de juros mensais, clientes ativos e contagem de vencidas e a vencer.
 - Últimos clientes cadastrados e atividades recentes, ambos lidos do banco cifrado.
-- Relatório mensal ou diário em A4, com orientação retrato/paisagem, pré-visualização na tela e impressão pelo navegador.
-- Exportação `.xlsx` com as abas **Dívidas** e **Movimentações**, gerada por um escritor próprio de XML + ZIP, sem biblioteca de planilha.
+- Relatório de dívidas mensal ou diário: dívidas registradas no período e movimentações do histórico, em A4 retrato/paisagem, com pré-visualização e impressão pelo navegador.
+- Relatório de parcelamentos mensal ou diário, filtrado pela data de início do plano, com parcelas, valores, vencimentos e situação.
+- Exportação `.xlsx` de dívidas com as abas **Dívidas** e **Movimentações**; para parcelamentos, abas **Parcelamentos** e **Parcelas**, incluindo situação de pagamento. Os arquivos são gerados por um escritor próprio de XML + ZIP, sem biblioteca de planilha.
 
 ### Backup e restauração
 
 - Backup em ZIP com contagens, versão do formato, versão do banco e SHA-256 de cada arquivo.
+- Planos de parcelamento, parcelas e baixas acompanham o backup e a restauração; vínculos e consistência dos saldos são verificados antes da gravação.
 - Criptografia opcional do arquivo com senha própria, independente da senha do cofre (PBKDF2, 600.000 iterações).
 - Restauração em dois modos: **mesclar** (cliente com o mesmo CPF/CNPJ não é duplicado; dívida com `id` já existente é ignorada) ou **substituir tudo**.
 - Verificação de estrutura, hashes e relacionamentos antes de tocar no banco; se um arquivo não confere, nada é alterado.
@@ -185,16 +199,16 @@ A navegação muda com a largura: barra inferior até 767 px, *rail* de 96 px en
 flowchart TB
   subgraph CAMADA_UI["Apresentação - src/ui"]
     SHELL["shell.js<br/>barra, rail e menu lateral"]
-    TELAS["dashboard · clients · debts<br/>tools · settings"]
+    TELAS["dashboard · clients · debts<br/>installments · reports · backup · settings"]
   end
 
   subgraph CAMADA_SERV["Casos de uso - src/services"]
-    INTERNOS["clients · debts · records<br/>dashboard · search · settings"]
+    INTERNOS["clients · debts · installments · records<br/>dashboard · search · settings"]
     EXTERNOS["viacep · apicpf · google-drive"]
   end
 
   subgraph CAMADA_DOM["Domínio puro - src/domain"]
-    REGRAS["money · due<br/>validators · address"]
+    REGRAS["money · due · installments<br/>validators · address"]
   end
 
   subgraph CAMADA_COFRE["Cofre - src/security"]
@@ -203,7 +217,7 @@ flowchart TB
   end
 
   BANCO[("IndexedDB<br/>src/db/idb.js")]
-  EXPORT["src/export<br/>XLSX · relatório A4 · backup"]
+  EXPORT["src/export<br/>XLSX de dívidas e parcelas · A4 · backup"]
 
   SHELL --> TELAS
   TELAS --> INTERNOS --> REGRAS
@@ -237,7 +251,7 @@ flowchart LR
   SENHA["Senha mestra<br/>nunca é armazenada"] -->|"PBKDF2-SHA256<br/>600.000 iterações"| KEK["KEK AES-GCM 256<br/>wrapKey / unwrapKey"]
   META[("meta/vault<br/>salt · iv · DEK embrulhada")] --> KEK
   KEK -->|"desembrulha na abertura"| DEK["DEK AES-GCM 256<br/>não extraível"]
-  DEK -->|"AES-GCM, IV de 96 bits<br/>por registro"| DADOS[("clients · debts<br/>documents · history · blobs")]
+  DEK -->|"AES-GCM, IV de 96 bits<br/>por registro"| DADOS[("clients · debts · installment_plans<br/>documents · history · blobs")]
 ```
 
 - **Envelope de chave.** A senha deriva uma KEK; a KEK apenas embrulha a DEK gerada aleatoriamente. Trocar a senha não exige recifrar o banco, e não existe *hash* de senha comparado: a senha correta é a que abre a DEK pela tag de autenticação do GCM.
@@ -257,7 +271,7 @@ flowchart LR
 | Vazamento da cópia de segurança | **Sim**, se criptografada | A senha do backup é independente e obrigatória para restaurar. |
 | Aparelho desbloqueado com o cofre aberto | **Não** | Dados abertos ficam em memória; malware ou XSS nesse estado consegue lê-los. |
 | Senha do cofre esquecida | **Não** | Não há recuperação, redefinição por e-mail ou chave mestra oculta. |
-| Metadados de índice (`id`, `createdAt`, `clientId`) | **Não** | Ficam em claro por decisão de projeto, para permitir índices e ordenação. |
+| Metadados de índice (`id`, `createdAt`, `clientId`, `debtId` em planos) | **Não** | Ficam em claro por decisão de projeto para permitir índices, ordenação e unicidade do vínculo plano–dívida. |
 | Força bruta remota contra a senha | **Parcial** | PBKDF2 e atraso local encarecem o ataque, mas não há limitador do lado do servidor. |
 
 ---
@@ -270,6 +284,7 @@ flowchart LR
 | `settings` | `key` | Inatividade, janela de vencimentos e preferências | Sim |
 | `clients` | `id` | Cadastro completo do cliente | `id`, `createdAt` |
 | `debts` | `id` | Valor, taxa, registro, vencimento, observações | `id`, `createdAt`, `clientId` |
+| `installment_plans` | `id` | Plano, parcelas, valores, vencimentos e situação de pagamento | `id`, `createdAt`, `clientId`, `debtId` |
 | `documents` | `id` | Nome, categoria, tipo, tamanho e hash do arquivo | `id`, `createdAt`, `clientId` |
 | `history` | `id` | Eventos de cadastro, alteração, exclusão e documentos | `id`, `createdAt`, `clientId` |
 | `blobs` | `id` | Fotos e documentos anexos | `id` (bytes cifrados) |
@@ -296,7 +311,7 @@ export const interest = (p, b) => Number((BigInt(p) * BigInt(b) + 5000n) / 10000
 | R$ 3,35 | 10% | R$ 0,34 |
 | R$ 100.000.000.000,00 | 1000% | R$ 1.000.000.000.000,00 |
 
-O painel soma os juros de todas as dívidas cadastradas como **projeção mensal**. Não há pagamento parcial nem amortização no escopo atual.
+O painel soma os juros de todas as dívidas cadastradas como **projeção mensal**. A baixa de uma parcela reduz o principal pelo valor exato dela e a projeção é recalculada sobre o saldo restante; não há pagamento parcial livre fora de um plano de parcelamento.
 
 ---
 
@@ -456,9 +471,9 @@ São 22 testes automatizados em 11 arquivos. Estado atual: todos passando no Nod
 │   ├── config/google.js      # Identificador público do cliente OAuth
 │   ├── core/live.js          # Reatividade entre telas e gravações
 │   ├── db/idb.js             # IndexedDB versionado e transações
-│   ├── domain/               # money · due · validators · address
-│   ├── export/               # XLSX · relatório A4 · formato de backup
-│   ├── files/process.js      # Normalização de fotos e documentos
+│   ├── domain/               # money · due · validators · address · installments
+│   ├── export/               # XLSX de dívidas e parcelas · relatório A4 · backup
+│   ├── files/process.js      # normalização de fotos e documentos
 │   ├── security/             # crypto.js (envelope) · auth.js (sessão e bloqueio)
 │   ├── services/             # Casos de uso e integrações externas
 │   ├── ui/                   # Telas, ícones SVG e componentes
@@ -531,8 +546,8 @@ Nginx, Caddy ou `npx serve` funcionam igualmente. Mantenha HTTPS, não aplique c
 
 - **Sem sincronização entre aparelhos.** A troca de dados acontece por backup e restauração, manual por decisão de projeto.
 - **Sem recuperação de senha.** Não existe *reset*, e-mail de recuperação ou chave de emergência.
-- **Sem quitação parcial.** A dívida cadastrada continua contando no saldo enquanto existir.
-- **Metadados de índice em claro.** `id`, `createdAt` e `clientId` ficam legíveis para permitir índices e ordenação.
+- **Baixa parcial somente pelo parcelamento.** O app não oferece uma baixa avulsa: pagar uma parcela do plano reduz o principal; sem baixa registrada, o saldo da dívida permanece integral.
+- **Metadados de índice em claro.** `id`, `createdAt`, `clientId` e `debtId` dos planos ficam legíveis para permitir índices, ordenação e unicidade do vínculo plano–dívida.
 - **Criptografia de repouso, não de execução.** Com o cofre aberto, um XSS ou malware no aparelho lê os dados.
 - **Atraso de tentativas é local.** Quem tiver o arquivo do banco pode testar senhas fora do app; a defesa real é o custo do PBKDF2 e uma senha forte.
 
