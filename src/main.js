@@ -51,7 +51,7 @@ async function appView(){
   show(
     h('header',{class:'top brandbar','data-page':'home'},
       h('div',{class:'head'},h('span',{class:'mark','aria-hidden':'true'},h('img',{src:'assets/img/hat.webp',alt:''})),
-        h('span',{class:'brandtext'},h('span',{class:'word'},'SCIPIONE CRED')))),
+        h('img',{class:'home-brand-logo',src:'assets/img/scipione-cred-logo.png',alt:'SCIPIONE CRED'})),
     h('section',{class:'hero'},h('p',{class:'eyebrow'},'Visão geral'),h('h1',{},'Seu crédito, em ordem'),
       h('p',{},hoje.charAt(0).toUpperCase()+hoje.slice(1))),
     ...dash,
