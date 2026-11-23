@@ -18,7 +18,7 @@ Um cofre que roda inteiro no navegador: os dados ficam no seu aparelho, cifrados
 [![CSS](https://img.shields.io/badge/CSS-23.6%25-1572B6?style=flat-square&logo=css&logoColor=fff)](#estrutura-do-repositório)
 [![HTML](https://img.shields.io/badge/HTML-1.1%25-E34F26?style=flat-square&logo=html5&logoColor=fff)](#estrutura-do-repositório)
 [![Sem build](https://img.shields.io/badge/build-nenhum-34302A?style=flat-square)](#ambiente-local)
-[![Testes com node test](https://img.shields.io/badge/testes-10%20casos%20node--test-4E7A3A?style=flat-square)](#testes)
+[![Testes com node test](https://img.shields.io/badge/testes-22%20casos%20node--test-4E7A3A?style=flat-square)](#testes)
 [![Backend de dados](https://img.shields.io/badge/backend%20de%20dados-nenhum-8B1E1E?style=flat-square)](#dados-e-armazenamento)
 
 </div>
@@ -127,7 +127,7 @@ Um cofre que roda inteiro no navegador: os dados ficam no seu aparelho, cifrados
   </tr>
 </table>
 
-A navegação muda com a largura: barra inferior até 719 px, *rail* de 96 px entre 720 e 1.099 px, menu lateral a partir de 1.100 px.
+A navegação muda com a largura: barra inferior até 767 px, *rail* de 96 px entre 768 e 1.099 px, menu lateral a partir de 1.100 px.
 
 ---
 
@@ -173,6 +173,8 @@ A navegação muda com a largura: barra inferior até 719 px, *rail* de 96 px en
 - Navegação por teclado com *link* "Ir para o conteúdo", foco visível, `aria-current` e alvos de toque de pelo menos 44 px.
 - Respeito a `prefers-reduced-motion` e mensagens com `role="alert"` / `role="status"`.
 - Identidade visual escura e dourada, com Cormorant Garamond e DM Sans servidas localmente e em cache offline.
+- A logo `assets/img/scipione-cred-logo.png` identifica o app no canto superior esquerdo: na barra lateral em telas largas e no cabeçalho de Início em telas menores. O chapéu permanece como ícone do sistema.
+- Na tela de acesso, o ícone do chapéu fica centralizado acima da logo; `office.webp` e `office-desk.webp` alternam como cenário, com movimento reduzido respeitado.
 - Interface 100% em português brasileiro, inclusive datas, moeda e nomes de arquivos gerados.
 
 ---
@@ -224,7 +226,7 @@ flowchart TB
 | Exportação | `src/export` | Escritor de XLSX, relatório A4 e formato de backup com SHA-256. |
 | PWA | `src/pwa.js`, `sw.js`, `manifest.json` | Instalação, cache offline, armazenamento persistente e atualização. |
 
-O núcleo tem 37 módulos ES em `src/` (~1,6 mil linhas de JavaScript e 645 de CSS). A única biblioteca em execução é o `fflate`, servido de `vendor/` para gerar ZIP.
+A aplicação usa módulos ES nativos, sem etapa de build. A única biblioteca de terceiros carregada em execução é `fflate`, servida localmente de `vendor/` para gerar arquivos ZIP.
 
 ---
 
@@ -404,13 +406,16 @@ npm test
 | `tests/money.test.mjs` | Formatação em BRL, leitura de entrada, centavos com `BigInt` e arredondamento |
 | `tests/validators.test.mjs` | Dígitos verificadores de CPF/CNPJ e máscaras |
 | `tests/address.test.mjs` | Composição do endereço |
+| `tests/client-filters.test.mjs` | Filtro por inicial, combinação com busca e seleção por taxa |
 | `tests/crypto.test.mjs` | Envelope PBKDF2 → KEK → DEK, cifragem e decifragem |
+| `tests/installments.test.mjs` | Divisão em parcelas, vencimentos mensais e atualização do principal |
 | `tests/stage4.test.mjs` | Persistência, lotes transacionais e derivados do domínio |
 | `tests/backup.test.mjs` | Formato do backup, verificação de SHA-256 e restauração |
+| `tests/reports.test.mjs` | Exportação e filtros de relatórios de parcelamentos |
 | `tests/apicpf.test.mjs` | Normalização e tratamento das respostas da APICPF |
 | `tests/cpf-endpoint.test.mjs` | Função *serverless*: origem, limite por IP e `422` para CPF inválido |
 
-São 10 casos em 8 suítes (a do *endpoint* abre três subtestes). Estado atual: todos passando no Node 22.
+São 22 testes automatizados em 11 arquivos. Estado atual: todos passando no Node 22.
 
 ---
 
@@ -436,7 +441,7 @@ São 10 casos em 8 suítes (a do *endpoint* abre três subtestes). Estado atual:
 ├── assets/
 │   ├── fonts/                # Cormorant Garamond e DM Sans (subset latin) + licenças OFL
 │   ├── icons/                # Ícones do PWA: 192, 512, maskable, apple-touch
-│   └── img/                  # Marca e imagens da tela de acesso
+│   └── img/                  # Logo do sistema, chapéu e imagens da tela de acesso
 ├── css/
 │   ├── app.css               # Tokens de cor e tipografia, base, relatório e impressão
 │   └── ui.css                # Componentes, grades, breakpoints e movimento reduzido
@@ -459,7 +464,7 @@ São 10 casos em 8 suítes (a do *endpoint* abre três subtestes). Estado atual:
 │   ├── ui/                   # Telas, ícones SVG e componentes
 │   ├── main.js               # Roteamento e inicialização
 │   └── pwa.js                # Instalação, cache e armazenamento persistente
-├── tests/                    # 8 suítes em Node, sem dependências
+├── tests/                    # 11 arquivos de teste em Node, sem dependências
 ├── vendor/                   # fflate (MIT) servido localmente
 ├── index.html                # Entrada da aplicação e CSP
 ├── manifest.json             # Manifesto do PWA
