@@ -32,6 +32,7 @@ function authView(setup,notice){
     err,btn,
     h('p',{class:'foot'},'Criptografia AES-GCM · chave derivada com PBKDF2 · nada sai do aparelho'));
   const brand=h('div',{class:'brand brand--login'},
+    h('img',{class:'brand-hat',src:'assets/icons/icon-192.png',alt:''}),
     h('img',{class:'brand-logo',src:'assets/img/scipione-cred-logo.png',alt:'SCIPIONE Cred'}),
     h('p',{class:'tag'},'Gestão de clientes e dívidas'));
   const visual=h('section',{class:'auth-visual','aria-hidden':'true'},
