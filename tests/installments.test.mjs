@@ -16,6 +16,11 @@ test('aceita o limite de 60 parcelas e soma exatamente o saldo',()=>{
   assert.equal(rows.at(-1).number,60);
 });
 
+test('rejeita parcelas com valor zero e permite uma parcela mínima por centavo',()=>{
+  assert.throws(()=>splitInstallments(1,2,'2026-11-22'),/ao menos R\$ 0,01/);
+  assert.deepEqual(splitInstallments(60,60,'2026-11-22').map(x=>x.amountCents),Array(60).fill(1));
+});
+
 test('mantém a soma exata para 1, 2, 12, 24 e 60 parcelas',()=>{
   for(const count of[1,2,12,24,60]){
     const rows=splitInstallments(98765,count,'2026-11-22');

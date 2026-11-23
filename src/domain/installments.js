@@ -17,6 +17,7 @@ export function addMonths(date,months){
 export function splitInstallments(totalCents,count,firstDueDate){
   if(!Number.isSafeInteger(totalCents)||totalCents<=0)throw new Error('A dívida precisa ter um saldo maior que zero.');
   if(!Number.isInteger(count)||count<1||count>60)throw new Error('Informe de 1 a 60 parcelas.');
+  if(count>totalCents)throw new Error('Cada parcela precisa ter ao menos R$ 0,01. Reduza a quantidade de parcelas.');
   if(!isISODate(firstDueDate))throw new Error('Informe uma data de vencimento válida.');
   const base=Math.floor(totalCents/count),remainder=totalCents%count;
   return Array.from({length:count},(_,i)=>({number:i+1,amountCents:base+(i<remainder?1:0),dueDate:addMonths(firstDueDate,i),paidAt:null}));

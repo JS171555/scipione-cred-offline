@@ -15,7 +15,7 @@ export const debtsPageView=ctx=>{X=ctx;P.page(U,{home:X.home,open:profile,reopen
 export const openProfile=(ctx,id)=>{X=ctx;profile(id)};
 function list(q){return CL.clientList(U,{home:X.home,open:profile,newClient:()=>form(),bulk:()=>D.bulk(U,list)},typeof q==='string'?q:'')}
 function form(c={}){
-  let photo,previewUrl=null,previewSeq=0;const err=h('p',{class:'error',role:'alert'}),fe={},prev=h('div',{class:'avatar avatar--lg'},icon('camera',26));
+  let photo,previewUrl=null,previewSeq=0;const err=h('p',{class:'error',role:'alert'}),fe={},fc={},prev=h('div',{class:'avatar avatar--lg'},icon('camera',26));
   let lookupTimer=0,lookupSeq=0,lookupController=null,noteTimer=0,cpfTimer=0,cpfSeq=0,cpfController=null;
   const note=h('p',{class:'field-note',role:'status','aria-live':'polite'});
   const setNote=(text,warn=false)=>{clearTimeout(noteTimer);note.textContent=text;note.classList.toggle('is-warn',!!warn);
@@ -24,7 +24,7 @@ function form(c={}){
   const setDocStatus=(text,kind='')=>{docStatus.textContent=text;docStatus.className='cpf-status'+(kind?' is-'+kind:'')};
   const clearCpf=()=>{clearTimeout(cpfTimer);cpfSeq++;cpfController?.abort();cpfController=null;setDocStatus('')};
   const dispose=()=>{clearTimeout(lookupTimer);clearTimeout(noteTimer);lookupSeq++;lookupController?.abort();lookupController=null;clearCpf()};
-  const fld=(id,label,type='text',ac,full=false,span2=false)=>{const e=h('small',{class:'error'});fe[id]=e;return h('div',{class:'field'+(full?' field--full':'')+(span2?' field--span2':''),id:'f-'+id},h('label',{for:id},label),h('input',{id,type,autocomplete:ac,value:c[id]||''}),e)};
+  const fld=(id,label,type='text',ac,full=false,span2=false)=>{const e=h('small',{id:`${id}-error`,class:'error'}),input=h('input',{id,type,autocomplete:ac,value:c[id]||'','aria-describedby':`${id}-error`});fe[id]=e;fc[id]=input;return h('div',{class:'field'+(full?' field--full':'')+(span2?' field--span2':''),id:'f-'+id},h('label',{for:id},label),input,e)};
   const docField=fld('doc','CPF','text','off');
   docField.insertBefore(docStatus,docField.querySelector('small.error'));
   const genderField=h('div',{class:'field',id:'f-gender'},h('label',{for:'gender'},'Gênero'),
@@ -41,10 +41,10 @@ function form(c={}){
     prev.replaceChildren(u?h('img',{src:u,alt:'Fotografia do cliente'}):icon('camera',26))};
   const removeClient=async()=>{if(!c.id)return;err.textContent='';try{const cnt=await S.counts(c.id);if(!confirm(`Excluir ${c.name}?\n\nTambém serão removidos ${cnt.docs} documento(s), ${cnt.debts} dívida(s), ${cnt.installments} parcelamento(s) e todo o histórico deste cliente. Parcelamentos com parcelas baixadas impedem a exclusão para preservar o histórico financeiro. Não é possível desfazer.`))return;await S.deleteClient(c.id);list()}catch(x){err.textContent=x.message}};
   const btn=h('button',{class:'primary',type:'submit'},c.id?'Salvar alterações':'Cadastrar cliente');
-  const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');btn.disabled=true;
+  const f=h('form',{class:'card',novalidate:true,onsubmit:async e=>{e.preventDefault();err.textContent='';Object.values(fe).forEach(x=>x.textContent='');Object.values(fc).forEach(x=>x.removeAttribute('aria-invalid'));btn.disabled=true;
     const g=k=>f.elements[k].value.trim(),t=g('type'),a=composeAddress({street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),state:g('state')});
     try{profile(await S.saveClient({type:t,name:g('name'),doc:g('doc'),birth:t==='PF'?g('birth'):'',gender:t==='PF'?g('gender'):'',rg:t==='PF'?g('rg'):'',phone:g('phone'),mobile:g('mobile'),email:g('email'),cep:g('cep'),state:g('state'),street:g('street'),number:g('number'),complement:g('complement'),district:g('district'),city:g('city'),address:a},c.id?c:null,photo))}
-    catch(x){for(const[k,m]of Object.entries(x.errs||{}))fe[k].textContent=m;err.textContent=x.message}finally{btn.disabled=false}}},
+    catch(x){for(const[k,m]of Object.entries(x.errs||{}))if(fe[k]){fe[k].textContent=m;fc[k].setAttribute('aria-invalid','true')}err.textContent=x.message}finally{btn.disabled=false}}},
     h('h2',{},'Dados do cliente'),
     h('section',{class:'form-section','aria-labelledby':'personal-title'},
       h('div',{class:'form-section-head'},h('span',{class:'form-section-icon','aria-hidden':'true'},icon('user',18)),h('h3',{id:'personal-title'},'Dados pessoais')),

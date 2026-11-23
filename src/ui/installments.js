@@ -61,6 +61,7 @@ export async function installmentsView({h,show,home}){
     const debt=debts.find(d=>d.id===state.debtId),count=Number(countInput.value);
     balance.textContent=debt?`Saldo atual da dívida: ${M.brl(debt.principal)}`:'Selecione uma dívida para exibir o saldo atual.';
     if(!debt||!Number.isInteger(count)||count<1||count>60||!validDate(state.firstDueDate)){preview.replaceChildren();return}
+    if(count>debt.principal){preview.replaceChildren(h('p',{class:'error'},'Cada parcela precisa ter ao menos R$ 0,01. Reduza a quantidade de parcelas.'));return}
     try{
       const rows=splitInstallments(debt.principal,count,state.firstDueDate);
       preview.replaceChildren(h('h3',{class:'subhead'},'Prévia das parcelas'),h('p',{class:'muted'},`${count} parcela(s) · total ${M.brl(debt.principal)} · sem juros adicionais`),
